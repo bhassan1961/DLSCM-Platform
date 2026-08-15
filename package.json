@@ -1,0 +1,15 @@
+{
+  "name": "dlscm",
+  "version": "0.1.0",
+  "description": "Disaster Logistics & Supply Chain Management Platform",
+  "scripts": {
+    "dev": "concurrently --kill-others -n \"api,ui\" -c \"green,cyan\" \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && python run.py",
+    "frontend": "cd frontend && npm run dev",
+    "setup": "cd frontend && npm install && cd ../backend && pip install -r requirements.txt",
+    "seed": "cd backend && python -c \"from app.seed import seed_all; seed_all()\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

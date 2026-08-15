@@ -1,0 +1,27 @@
+{
+  "name": "dlscm-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host --port 3100",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.5.24",
+    "vue-router": "^4.6.3",
+    "pinia": "^3.0.3",
+    "axios": "^1.13.2",
+    "chart.js": "^4.5.0",
+    "vue-chartjs": "^5.3.0",
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "vite": "^7.2.4"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
