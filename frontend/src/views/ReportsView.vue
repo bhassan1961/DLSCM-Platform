@@ -325,12 +325,33 @@ async function generateReport() {
   donorError.value = null
   donorReport.value = null
   try {
+    const start = new Date(periodStart.value)
+    const end = new Date(periodEnd.value)
+    const diffDays = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)))
     const { data } = await reportsApi.generate({
       disaster_id: donorDisaster.value,
-      period_start: periodStart.value,
-      period_end: periodEnd.value
+      period_days: diffDays
     })
-    donorReport.value = data
+    const c = data.content || {}
+    const rs = c.response_summary || {}
+    donorReport.value = {
+      title: data.title,
+      period_start: periodStart.value,
+      period_end: periodEnd.value,
+      executive_summary: `Response report for the ${c.disaster_name || 'Unknown'} disaster (${c.disaster_type || ''}, ${c.severity || ''} severity). Affected population: ${(c.affected_population || 0).toLocaleString()}. During this period, ${rs.total_supply_requests || 0} supply requests were processed with ${rs.fulfilled_requests || 0} fulfilled, ${rs.active_shipments || 0} shipments in transit, and ${rs.total_beneficiaries_reached || 0} beneficiaries reached across ${rs.coordination_activities || 0} coordination activities.`,
+      key_metrics: {
+        total_requests: rs.total_supply_requests || 0,
+        fulfilled: rs.fulfilled_requests || 0,
+        active_shipments: rs.active_shipments || 0,
+        beneficiaries_reached: rs.total_beneficiaries_reached || 0,
+        coordination_activities: rs.coordination_activities || 0,
+      },
+      recommendations: [
+        'Continue monitoring supply pipeline for potential stockouts',
+        'Increase coordination with local partners for last-mile delivery',
+        'Review prepositioning strategy based on current consumption rates',
+      ],
+    }
   } catch (e) {
     donorError.value = 'Failed to generate report. Please try again.'
     console.error('Report generation error:', e)
