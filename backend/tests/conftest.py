@@ -5,15 +5,25 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
-from app.main import app
-from app.seed import seed_all
 
-engine = create_engine(
+test_engine = create_engine(
     "sqlite://",
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
-TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+TestSession = sessionmaker(bind=test_engine, autoflush=False, autocommit=False)
+
+import app.database
+import app.main
+import app.seed
+
+app.database.engine = test_engine
+app.database.SessionLocal = TestSession
+app.main.engine = test_engine
+app.seed.engine = test_engine
+app.seed.SessionLocal = TestSession
+
+from app.main import app
 
 
 def override_get_db():
@@ -29,16 +39,13 @@ app.dependency_overrides[get_db] = override_get_db
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_db():
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=test_engine)
     db = TestSession()
     try:
         from app.models.user import Organization, User
 
         if db.query(Organization).count() == 0:
-            seed_all.__wrapped__ if hasattr(seed_all, "__wrapped__") else None
-            from app.models.user import Organization as Org
-
-            org = Org(name="Test Org", org_type="ngo", country="Test")
+            org = Organization(name="Test Org", org_type="ngo", country="Test")
             db.add(org)
             db.flush()
             user = User(
@@ -53,12 +60,12 @@ def setup_db():
     finally:
         db.close()
     yield
-    Base.metadata.drop_all(bind=engine)
+    Base.metadata.drop_all(bind=test_engine)
 
 
 @pytest.fixture(scope="session")
 def client():
-    return TestClient(app, raise_server_exceptions=False)
+    return TestClient(app)
 
 
 @pytest.fixture(scope="session")
