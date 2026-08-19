@@ -1,5 +1,7 @@
 <template>
-  <div class="map-container" ref="mapContainer"></div>
+  <div class="map-container" ref="mapContainer" role="img" aria-label="Interactive map showing logistics operations, warehouses, and shipment routes">
+    <span class="sr-only">Map visualization. Use the data table below for accessible content.</span>
+  </div>
 </template>
 
 <script setup>
@@ -37,18 +39,31 @@ function updateMarkers() {
   props.markers.forEach(m => {
     if (m.lat == null || m.lng == null) return
     const color = resolveColor(m.color)
-    const circle = L.circleMarker([m.lat, m.lng], {
-      radius: m.radius || 8,
-      fillColor: color,
-      color: color,
-      weight: 2,
-      opacity: 0.9,
-      fillOpacity: 0.6
-    })
-    if (m.popup || m.label) {
-      circle.bindPopup(m.popup || m.label)
+    let marker
+    if (m.pulse) {
+      const size = (m.radius || 10) * 2
+      const pulseSize = size + 20
+      const icon = L.divIcon({
+        className: 'pulse-marker',
+        html: `<span class="pulse-ring" style="width:${pulseSize}px;height:${pulseSize}px;border-color:${color};"></span><span class="pulse-dot" style="width:${size}px;height:${size}px;background:${color};"></span>`,
+        iconSize: [pulseSize, pulseSize],
+        iconAnchor: [pulseSize / 2, pulseSize / 2]
+      })
+      marker = L.marker([m.lat, m.lng], { icon })
+    } else {
+      marker = L.circleMarker([m.lat, m.lng], {
+        radius: m.radius || 8,
+        fillColor: color,
+        color: color,
+        weight: 2,
+        opacity: 0.9,
+        fillOpacity: 0.6
+      })
     }
-    markerLayer.addLayer(circle)
+    if (m.popup || m.label) {
+      marker.bindPopup(m.popup || m.label)
+    }
+    markerLayer.addLayer(marker)
   })
 }
 
@@ -93,8 +108,8 @@ onUnmounted(() => {
 
 watch(() => props.markers, updateMarkers, { deep: true })
 watch(() => props.polylines, updatePolylines, { deep: true })
-watch(() => props.center, (val) => {
-  if (map && val) map.setView(val, props.zoom)
+watch(() => [props.center, props.zoom], ([c, z]) => {
+  if (map && c) map.flyTo(c, z, { duration: 1.5 })
 })
 </script>
 
@@ -103,9 +118,39 @@ watch(() => props.center, (val) => {
   width: 100%;
   height: 100%;
   min-height: 300px;
-  border-radius: 8px;
+  border-radius: var(--radius, 8px);
   overflow: hidden;
   border: 1px solid var(--border);
   z-index: 0;
+}
+</style>
+
+<style>
+.pulse-marker {
+  background: none !important;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-dot {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.9;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+.pulse-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid;
+  opacity: 0;
+  animation: pulse-expand 2s ease-out infinite;
+}
+
+@keyframes pulse-expand {
+  0% { transform: scale(0.5); opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0; }
 }
 </style>

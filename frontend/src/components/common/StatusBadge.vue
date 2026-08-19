@@ -1,5 +1,26 @@
 <template>
   <span class="status-badge" :class="[colorClass, size]">
+    <svg class="status-icon" :width="iconSize" :height="iconSize" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <template v-if="iconShape === 'warning'">
+        <path d="M8 1l7 13H1L8 1zm0 4v4m0 2h.01" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      </template>
+      <template v-else-if="iconShape === 'check'">
+        <path d="M3 8.5l3.5 3.5L13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </template>
+      <template v-else-if="iconShape === 'clock'">
+        <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5" />
+        <path d="M8 4.5v4l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      </template>
+      <template v-else-if="iconShape === 'arrow'">
+        <path d="M8 3v10M4 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </template>
+      <template v-else-if="iconShape === 'x'">
+        <path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </template>
+      <template v-else>
+        <circle cx="8" cy="8" r="3" />
+      </template>
+    </svg>
     {{ displayLabel }}
   </span>
 </template>
@@ -39,10 +60,28 @@ const colorMap = {
   minor: 'success'
 }
 
+const iconMap = {
+  warning: 'clock',
+  primary: 'arrow',
+  accent: 'arrow',
+  success: 'check',
+  danger: 'x'
+}
+
+const dangerStatuses = ['critical', 'catastrophic', 'extreme']
+
 const colorClass = computed(() => {
   const key = props.status?.toLowerCase().replace(/[\s-]/g, '_')
   return colorMap[key] || 'primary'
 })
+
+const iconShape = computed(() => {
+  const key = props.status?.toLowerCase().replace(/[\s-]/g, '_')
+  if (dangerStatuses.includes(key)) return 'warning'
+  return iconMap[colorClass.value] || 'clock'
+})
+
+const iconSize = computed(() => props.size === 'sm' ? 10 : 12)
 
 const displayLabel = computed(() => {
   return props.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || ''
@@ -53,8 +92,9 @@ const displayLabel = computed(() => {
 .status-badge {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   font-weight: 600;
-  border-radius: 12px;
+  border-radius: var(--radius, 10px);
   white-space: nowrap;
   text-transform: capitalize;
 }
@@ -67,6 +107,10 @@ const displayLabel = computed(() => {
 .status-badge.sm {
   font-size: 10px;
   padding: 2px 8px;
+}
+
+.status-icon {
+  flex-shrink: 0;
 }
 
 .status-badge.warning {

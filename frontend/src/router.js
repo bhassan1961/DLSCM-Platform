@@ -88,6 +88,72 @@ const routes = [
         meta: { title: 'Community Toolkit', phase: 4 }
       },
       {
+        path: 'suppliers',
+        name: 'Suppliers',
+        component: () => import('./views/SuppliersView.vue'),
+        meta: { title: 'Supplier Registry', phase: 1 }
+      },
+      {
+        path: 'kits',
+        name: 'Kits',
+        component: () => import('./views/KitAssemblyView.vue'),
+        meta: { title: 'Kit Assembly', phase: 1 }
+      },
+      {
+        path: 'donations',
+        name: 'Donations',
+        component: () => import('./views/DonationsView.vue'),
+        meta: { title: 'Donation Intake', phase: 1 }
+      },
+      {
+        path: 'cross-org',
+        name: 'CrossOrg',
+        component: () => import('./views/CrossOrgView.vue'),
+        meta: { title: 'Cross-Org Stock', phase: 1 }
+      },
+      {
+        path: 'intelligence',
+        name: 'Intelligence',
+        component: () => import('./views/IntelligenceView.vue'),
+        meta: { title: 'Crisis Intelligence', phase: 2 }
+      },
+      {
+        path: 'compliance',
+        name: 'Compliance',
+        component: () => import('./views/ComplianceView.vue'),
+        meta: { title: 'Compliance Dashboard', phase: 2 }
+      },
+      {
+        path: 'after-action',
+        name: 'AfterAction',
+        component: () => import('./views/AfterActionView.vue'),
+        meta: { title: 'After-Action Reviews', phase: 3 }
+      },
+      {
+        path: 'prepositioning',
+        name: 'Prepositioning',
+        component: () => import('./views/PrepositioningView.vue'),
+        meta: { title: 'Prepositioning Planner', phase: 1 }
+      },
+      {
+        path: 'edxl',
+        name: 'EDXL',
+        component: () => import('./views/EdxlView.vue'),
+        meta: { title: 'EDXL/CAP Exchange', phase: 2 }
+      },
+      {
+        path: 'recovery',
+        name: 'Recovery',
+        component: () => import('./views/RecoveryView.vue'),
+        meta: { title: 'Recovery Planning', phase: 3 }
+      },
+      {
+        path: 'audit',
+        name: 'Audit',
+        component: () => import('./views/AuditView.vue'),
+        meta: { title: 'Audit Trail', phase: 0 }
+      },
+      {
         path: 'settings',
         name: 'Settings',
         component: () => import('./views/SettingsView.vue'),

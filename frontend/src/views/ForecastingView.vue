@@ -1,16 +1,17 @@
 <template>
   <div class="forecasting">
+    <ErrorBanner :error="error" :on-retry="retryLoad" @dismiss="clearError" />
     <!-- Controls -->
     <div class="controls-bar">
       <div class="control-group">
-        <label class="control-label">Disaster</label>
+        <label class="control-label">{{ $t('forecasting.disaster') }}</label>
         <select v-model="selectedDisaster" class="control-select" @change="onDisasterChange">
-          <option :value="null" disabled>Select a disaster...</option>
+          <option :value="null" disabled>{{ $t('forecasting.selectDisaster') }}</option>
           <option v-for="d in disasters" :key="d.id" :value="d.id">{{ d.name }}</option>
         </select>
       </div>
       <div class="control-group">
-        <label class="control-label">Forecast Horizon</label>
+        <label class="control-label">{{ $t('forecasting.horizon') }}</label>
         <div class="horizon-buttons">
           <button
             v-for="h in horizons"
@@ -19,7 +20,7 @@
             :class="{ active: selectedHorizon === h }"
             @click="selectedHorizon = h; fetchForecast()"
           >
-            {{ h }} days
+            {{ h }} {{ $t('forecasting.days') }}
           </button>
         </div>
       </div>
@@ -28,19 +29,14 @@
     <!-- Loading -->
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
-      <span>Generating forecast...</span>
-    </div>
-
-    <!-- Error -->
-    <div v-if="error" class="error-banner">
-      {{ error }}
+      <span>{{ $t('forecasting.generating') }}</span>
     </div>
 
     <!-- Empty State -->
     <div v-if="!loading && !error && !forecast" class="empty-state">
-      <span class="empty-icon">&#x1F4C8;</span>
-      <h3>Select a disaster and forecast horizon</h3>
-      <p>AI-powered demand projections will appear here.</p>
+      <svg class="empty-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+      <h2 class="empty-title">{{ $t('forecasting.emptyTitle') }}</h2>
+      <p>{{ $t('forecasting.emptyDesc') }}</p>
     </div>
 
     <!-- Results -->
@@ -53,7 +49,7 @@
           class="summary-card"
           :style="{ borderTopColor: categoryColors[cat.key] }"
         >
-          <div class="card-icon" :style="{ color: categoryColors[cat.key] }">{{ categoryIcons[cat.key] }}</div>
+          <SvgIcon :name="categoryIconNames[cat.key] || 'package'" :size="22" class="card-icon" :style="{ color: categoryColors[cat.key] }" />
           <div class="card-value">{{ formatNumber(cat.total) }}</div>
           <div class="card-unit">{{ cat.unit }}</div>
           <div class="card-label">{{ formatCategory(cat.key) }}</div>
@@ -63,8 +59,8 @@
       <!-- Chart -->
       <div class="chart-panel">
         <div class="panel-header">
-          <h3>Daily Demand Forecast &mdash; {{ forecast.disaster_name }}</h3>
-          <span class="chart-period">{{ selectedHorizon }} day projection</span>
+          <h2 class="panel-title">{{ $t('forecasting.dailyForecast') }} &mdash; {{ forecast.disaster_name }}</h2>
+          <span class="chart-period">{{ selectedHorizon }} {{ $t('forecasting.dayProjection') }}</span>
         </div>
         <div class="chart-wrapper">
           <Line :data="chartData" :options="chartOptions" />
@@ -88,16 +84,20 @@ import {
   Legend,
   Filler
 } from 'chart.js'
+import ErrorBanner from '../components/common/ErrorBanner.vue'
 import { disastersApi, forecastApi } from '../api/client'
+import SvgIcon from '../components/common/SvgIcon.vue'
+import { useErrorHandler } from '../composables/useErrorHandler'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
+
+const { error, handleError, clearError } = useErrorHandler()
 
 const disasters = ref([])
 const selectedDisaster = ref(null)
 const selectedHorizon = ref(30)
 const horizons = [7, 14, 30]
 const loading = ref(false)
-const error = ref(null)
 const forecast = ref(null)
 
 const categoryColors = {
@@ -109,13 +109,13 @@ const categoryColors = {
   nfi: '#1abc9c'
 }
 
-const categoryIcons = {
-  food: '\u{1F33E}',
-  water: '\u{1F4A7}',
-  medical: '\u{1FA7A}',
-  shelter: '\u{1F3E0}',
-  hygiene: '\u{1F9FC}',
-  nfi: '\u{1F4E6}'
+const categoryIconNames = {
+  food: 'food',
+  water: 'water',
+  medical: 'medical',
+  shelter: 'shelter',
+  hygiene: 'hygiene',
+  nfi: 'package'
 }
 
 const categories = computed(() => {
@@ -207,7 +207,7 @@ function formatNumber(n) {
 
 function onDisasterChange() {
   forecast.value = null
-  error.value = null
+  clearError()
   if (selectedDisaster.value) {
     fetchForecast()
   }
@@ -216,27 +216,33 @@ function onDisasterChange() {
 async function fetchForecast() {
   if (!selectedDisaster.value) return
   loading.value = true
-  error.value = null
+  clearError()
   try {
     const { data } = await forecastApi.forecast(selectedDisaster.value, selectedHorizon.value)
     forecast.value = data
   } catch (e) {
-    error.value = 'Failed to generate forecast. Please try again.'
-    console.error('Forecast error:', e)
+    handleError(e, 'Failed to generate forecast. Please try again.')
     forecast.value = null
   } finally {
     loading.value = false
   }
 }
 
-onMounted(async () => {
+async function loadDisasters() {
   try {
     const { data } = await disastersApi.list()
     disasters.value = data?.disasters || data || []
   } catch (e) {
-    console.error('Failed to load disasters:', e)
+    handleError(e, 'Failed to load disasters')
   }
-})
+}
+
+function retryLoad() {
+  clearError()
+  loadDisasters()
+}
+
+onMounted(loadDisasters)
 </script>
 
 <style scoped>
@@ -270,7 +276,7 @@ onMounted(async () => {
 .control-select {
   padding: 8px 12px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;
@@ -281,7 +287,7 @@ onMounted(async () => {
   display: flex;
   gap: 0;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -333,13 +339,12 @@ onMounted(async () => {
   background: var(--surface);
   border: 1px solid var(--border);
   border-top: 3px solid var(--primary);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 16px;
   text-align: center;
 }
 
 .card-icon {
-  font-size: 24px;
   margin-bottom: 8px;
 }
 
@@ -366,8 +371,9 @@ onMounted(async () => {
 .chart-panel {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .panel-header {
@@ -380,7 +386,7 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.panel-header h3 {
+.panel-header .panel-title {
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
@@ -391,7 +397,7 @@ onMounted(async () => {
   color: var(--text-secondary);
   background: var(--bg);
   padding: 4px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius);
 }
 
 .chart-wrapper {
@@ -420,12 +426,11 @@ onMounted(async () => {
 }
 
 .empty-icon {
-  font-size: 48px;
-  opacity: 0.5;
+  opacity: 0.4;
   margin-bottom: 16px;
 }
 
-.empty-state h3 {
+.empty-state .empty-title {
   font-size: 18px;
   font-weight: 600;
   color: var(--text);
@@ -440,7 +445,7 @@ onMounted(async () => {
 .error-banner {
   background: rgba(231, 76, 60, 0.1);
   border: 1px solid var(--danger);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 12px 20px;
   color: var(--danger);
   font-size: 14px;
@@ -450,7 +455,7 @@ onMounted(async () => {
   width: 24px;
   height: 24px;
   border: 3px solid var(--border);
-  border-top-color: var(--primary);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

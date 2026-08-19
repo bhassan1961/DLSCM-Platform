@@ -27,17 +27,29 @@ class AlertOut(BaseModel):
     expires_at: Optional[datetime] = None
     status: str
     raw_message: Optional[str] = None
+    acknowledged: bool = False
+    created_at: Optional[datetime] = None
+
+
+def _alert_to_dict(a: Alert) -> dict:
+    out = AlertOut.model_validate(a)
+    out.acknowledged = a.status == "acknowledged"
+    out.created_at = a.issued_at
+    return out
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────
 
-@router.get("/", response_model=list[AlertOut])
-def list_alerts(db: Session = Depends(get_db)):
-    alerts = db.query(Alert).all()
-    return [AlertOut.model_validate(a) for a in alerts]
+@router.get("")
+def list_alerts(severity: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(Alert)
+    if severity:
+        query = query.filter(Alert.severity == severity)
+    alerts = query.all()
+    return {"alerts": [_alert_to_dict(a) for a in alerts]}
 
 
-@router.patch("/{alert_id}/acknowledge", response_model=AlertOut)
+@router.patch("/{alert_id}/acknowledge")
 def acknowledge_alert(alert_id: int, db: Session = Depends(get_db)):
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
     if not alert:
@@ -45,4 +57,4 @@ def acknowledge_alert(alert_id: int, db: Session = Depends(get_db)):
     alert.status = "acknowledged"
     db.commit()
     db.refresh(alert)
-    return AlertOut.model_validate(alert)
+    return _alert_to_dict(alert)

@@ -33,7 +33,7 @@ class DisasterOut(BaseModel):
 
 # ── Endpoints ──────────────────────────────────────────────────────────
 
-@router.get("/", response_model=list[DisasterOut])
+@router.get("", response_model=list[DisasterOut])
 def list_disasters(db: Session = Depends(get_db)):
     disasters = db.query(Disaster).all()
     return [DisasterOut.model_validate(d) for d in disasters]

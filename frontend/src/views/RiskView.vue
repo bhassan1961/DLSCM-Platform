@@ -1,20 +1,15 @@
 <template>
   <div class="risk-dashboard">
+    <ErrorBanner :error="error" :on-retry="retryLoad" @dismiss="clearError" />
     <div class="page-header">
-      <h2>Risk Dashboard</h2>
-      <p class="page-subtitle">Multi-hazard risk assessment across global regions</p>
+      <h2>{{ $t('risk.title') }}</h2>
+      <p class="page-subtitle">{{ $t('risk.subtitle') }}</p>
     </div>
 
     <!-- Loading -->
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
-      <span>Loading risk data...</span>
-    </div>
-
-    <!-- Error -->
-    <div v-else-if="error" class="error-state">
-      <p>Failed to load risk data.</p>
-      <button class="retry-btn" @click="fetchRiskData">Retry</button>
+      <span>{{ $t('risk.loadingData') }}</span>
     </div>
 
     <template v-else>
@@ -27,23 +22,23 @@
 
       <!-- Legend -->
       <div class="legend">
-        <span class="legend-title">Risk Level:</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #e74c3c;"></span> Critical</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #f39c12;"></span> High</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #3498db;"></span> Moderate</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #27ae60;"></span> Low</span>
+        <span class="legend-title">{{ $t('risk.riskLevel') }}:</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #e74c3c;"></span> {{ $t('risk.critical') }}</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #f39c12;"></span> {{ $t('risk.high') }}</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #3498db;"></span> {{ $t('risk.moderate') }}</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #27ae60;"></span> {{ $t('risk.low') }}</span>
       </div>
 
       <!-- Region Cards -->
       <div class="regions-section">
-        <h3 class="section-title">Risk Regions ({{ sortedRegions.length }})</h3>
+        <h3 class="section-title">{{ $t('risk.riskRegions') }} ({{ sortedRegions.length }})</h3>
         <div class="regions-list">
           <div v-for="region in sortedRegions" :key="region.name" class="region-card">
             <div class="region-header" @click="toggleRegion(region.name)">
               <div class="region-info">
                 <h4 class="region-name">{{ region.name }}</h4>
                 <div class="region-meta">
-                  <span class="composite-score">Score: {{ region.composite_risk_score?.toFixed(3) }}</span>
+                  <span class="composite-score">{{ $t('risk.score') }}: {{ region.composite_risk_score?.toFixed(3) }}</span>
                   <StatusBadge :status="region.risk_level" size="sm" />
                 </div>
               </div>
@@ -53,17 +48,17 @@
             <div v-if="expandedRegions.has(region.name)" class="region-details">
               <!-- Hazard Breakdown -->
               <div class="detail-section">
-                <h5 class="detail-title">Hazard Breakdown</h5>
+                <h5 class="detail-title">{{ $t('risk.hazardBreakdown') }}</h5>
                 <div class="bar-chart">
                   <div v-for="(score, hazard) in region.hazards" :key="hazard" class="bar-container">
                     <div class="bar-label">{{ formatHazard(hazard) }}</div>
                     <div class="bar-track">
                       <div
                         class="bar-fill"
-                        :style="{ width: (score * 100) + '%', background: hazardBarColor(score) }"
+                        :style="{ width: score + '%', background: hazardBarColor(score) }"
                       ></div>
                     </div>
-                    <div class="bar-value">{{ (score * 100).toFixed(0) }}%</div>
+                    <div class="bar-value">{{ Math.round(score) }}%</div>
                   </div>
                 </div>
               </div>
@@ -71,12 +66,12 @@
               <!-- Stats -->
               <div class="detail-stats">
                 <div class="stat-item">
-                  <span class="stat-label">Population Exposure</span>
+                  <span class="stat-label">{{ $t('risk.populationExposure') }}</span>
                   <span class="stat-value">{{ region.population_exposure?.toLocaleString() }}</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label">Infrastructure Vulnerability</span>
-                  <span class="stat-value">{{ ((region.infrastructure_vulnerability || 0) * 100).toFixed(0) }}%</span>
+                  <span class="stat-label">{{ $t('risk.infrastructureVulnerability') }}</span>
+                  <span class="stat-value">{{ Math.round(region.infrastructure_vulnerability || 0) }}%</span>
                 </div>
               </div>
             </div>
@@ -92,10 +87,13 @@ import { ref, computed, onMounted } from 'vue'
 import { riskApi } from '../api/client'
 import MapView from '../components/common/MapView.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
+import ErrorBanner from '../components/common/ErrorBanner.vue'
+import { useErrorHandler } from '../composables/useErrorHandler'
+
+const { error, handleError, clearError } = useErrorHandler()
 
 const regions = ref([])
 const loading = ref(true)
-const error = ref(false)
 const expandedRegions = ref(new Set())
 
 const riskColors = {
@@ -140,14 +138,14 @@ function formatHazard(key) {
 }
 
 function hazardBarColor(score) {
-  if (score >= 0.7) return 'var(--danger)'
-  if (score >= 0.4) return 'var(--warning)'
+  if (score >= 70) return 'var(--danger)'
+  if (score >= 40) return 'var(--warning)'
   return 'var(--success)'
 }
 
 async function fetchRiskData() {
   loading.value = true
-  error.value = false
+  clearError()
   try {
     const { data } = await riskApi.map()
     const raw = Array.isArray(data) ? data : data.regions || []
@@ -162,11 +160,15 @@ async function fetchRiskData() {
       infrastructure_vulnerability: r.components?.infrastructure_vulnerability ?? r.infrastructure_vulnerability ?? 0,
     }))
   } catch (e) {
-    console.error('Failed to load risk data:', e)
-    error.value = true
+    handleError(e, 'Failed to load risk data')
   } finally {
     loading.value = false
   }
+}
+
+function retryLoad() {
+  clearError()
+  fetchRiskData()
 }
 
 onMounted(fetchRiskData)
@@ -199,7 +201,7 @@ onMounted(fetchRiskData)
 
 .map-wrapper {
   height: 420px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
@@ -210,7 +212,7 @@ onMounted(fetchRiskData)
   padding: 10px 16px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   margin-bottom: 24px;
   font-size: 13px;
   flex-wrap: wrap;
@@ -255,8 +257,9 @@ onMounted(fetchRiskData)
 .region-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
   transition: border-color 0.15s ease;
 }
 
@@ -349,13 +352,13 @@ onMounted(fetchRiskData)
 .bar-track {
   height: 20px;
   background: var(--bg);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .bar-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: width 0.6s ease;
 }
 
@@ -373,7 +376,7 @@ onMounted(fetchRiskData)
 
 .stat-item {
   background: var(--bg);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
@@ -407,7 +410,7 @@ onMounted(fetchRiskData)
   width: 28px;
   height: 28px;
   border: 3px solid var(--border);
-  border-top-color: var(--primary);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -419,7 +422,7 @@ onMounted(fetchRiskData)
 .retry-btn {
   padding: 8px 20px;
   border: 1px solid var(--primary);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--primary);
   font-size: 13px;

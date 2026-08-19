@@ -62,7 +62,7 @@ class SimulationResult(BaseModel):
 # ── Endpoints ──────────────────────────────────────────────────────────
 
 @router.post("/run", response_model=SimulationResult)
-def run_simulation(req: SimulationRunRequest):
+def run_simulation(req: SimulationRunRequest, db: Session = Depends(get_db)):
     demand = forecast_demand(
         disaster_type=req.disaster_type,
         severity=req.severity,
@@ -105,7 +105,7 @@ def run_simulation(req: SimulationRunRequest):
     nearest_km = 350 * severity_speed_factor.get(req.severity, 1.5)
     readiness = max(0, 100 - damage.get("overall_damage_index", 50) * 0.8)
 
-    return SimulationResult(
+    result = SimulationResult(
         demand_forecast=demand,
         damage_assessment=damage,
         estimated_response_cost_usd=estimated_cost,
@@ -114,6 +114,24 @@ def run_simulation(req: SimulationRunRequest):
         readiness_score=round(readiness, 1),
         recommended_prepositioning=recommended,
     )
+
+    # Persist simulation results to a Scenario record
+    scenario = Scenario(
+        name=f"Simulation - {req.disaster_type} ({req.severity})",
+        disaster_type=req.disaster_type,
+        severity=req.severity,
+        country="N/A",
+        latitude=0.0,
+        longitude=0.0,
+        affected_population=req.affected_population,
+        parameters={"days_ahead": req.days_ahead},
+        results=result.model_dump(),
+        status="completed",
+    )
+    db.add(scenario)
+    db.commit()
+
+    return result
 
 
 @router.get("/scenarios", response_model=list[ScenarioOut])

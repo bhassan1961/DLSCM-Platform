@@ -6,6 +6,7 @@ from datetime import datetime
 
 from app.database import get_db
 from app.models.inventory import Warehouse, Item, Stock
+from app.models.user import Organization
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
 
@@ -42,6 +43,15 @@ class StockUpdate(BaseModel):
     lot_number: Optional[str] = None
     expiry_date: Optional[datetime] = None
 
+
+
+class ItemCreate(BaseModel):
+    name: str
+    sku: str
+    category: str
+    unit: str
+    weight_kg: float
+    volume_m3: float
 
 class WarehouseOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -123,3 +133,51 @@ def list_all_stock(
         query = query.join(Item).filter(Item.category == category)
     stocks = query.all()
     return [StockOut.model_validate(s) for s in stocks]
+
+
+@router.get("/cross-org", response_model=list[dict])
+def cross_org_stock(db: Session = Depends(get_db)):
+    """Aggregated stock view across all organizations."""
+    warehouses = (
+        db.query(Warehouse)
+        .options(joinedload(Warehouse.stocks).joinedload(Stock.item), joinedload(Warehouse.organization))
+        .all()
+    )
+    result = []
+    for w in warehouses:
+        for s in w.stocks:
+            result.append({
+                "organization": w.organization.name if w.organization else "Unknown",
+                "warehouse": w.name,
+                "warehouse_location": w.location,
+                "item_name": s.item.name if s.item else "Unknown",
+                "category": s.item.category if s.item else "",
+                "sku": s.item.sku if s.item else "",
+                "quantity": s.quantity,
+                "unit": s.item.unit if s.item else "",
+                "lot_number": s.lot_number,
+                "expiry_date": s.expiry_date.isoformat() if s.expiry_date else None,
+            })
+    return result
+
+
+@router.post("/items", response_model=ItemOut, status_code=201)
+def create_item(item: ItemCreate, db: Session = Depends(get_db)):
+    existing = db.query(Item).filter(Item.sku == item.sku).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Item with this SKU already exists")
+    i = Item(**item.model_dump())
+    db.add(i)
+    db.commit()
+    db.refresh(i)
+    return ItemOut.model_validate(i)
+
+
+@router.delete("/items/{item_id}", status_code=204)
+def delete_item(item_id: int, db: Session = Depends(get_db)):
+    i = db.query(Item).filter(Item.id == item_id).first()
+    if not i:
+        raise HTTPException(status_code=404, detail="Item not found")
+    db.delete(i)
+    db.commit()
+    return None

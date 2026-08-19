@@ -1,11 +1,16 @@
 <template>
   <div class="data-table-wrapper">
-    <div v-if="loading" class="table-loading">
-      <div class="spinner"></div>
+    <div v-if="loading" class="table-loading" role="status" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
       <span>Loading...</span>
     </div>
     <div v-else-if="!rows.length" class="table-empty">
-      <span class="empty-icon">&#x1F4CB;</span>
+      <svg class="empty-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+      </svg>
       <p>No data available</p>
     </div>
     <div v-else class="table-scroll">
@@ -15,12 +20,17 @@
             <th
               v-for="col in columns"
               :key="col.key"
+              scope="col"
               :style="col.width ? { width: col.width } : {}"
               :class="{ sortable: col.sortable, sorted: sortKey === col.key }"
+              :tabindex="col.sortable ? 0 : undefined"
+              :aria-sort="sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : (col.sortable ? 'none' : undefined)"
               @click="col.sortable && toggleSort(col.key)"
+              @keydown.enter="col.sortable && toggleSort(col.key)"
+              @keydown.space.prevent="col.sortable && toggleSort(col.key)"
             >
               {{ col.label }}
-              <span v-if="col.sortable && sortKey === col.key" class="sort-arrow">
+              <span v-if="col.sortable && sortKey === col.key" class="sort-arrow" aria-hidden="true">
                 {{ sortDir === 'asc' ? '&#x25B2;' : '&#x25BC;' }}
               </span>
             </th>
@@ -86,25 +96,27 @@ const sortedRows = computed(() => {
 .data-table-wrapper {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .table-scroll {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .data-table th {
   text-align: left;
-  padding: 12px 16px;
+  padding: 10px 16px;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-secondary);
@@ -118,7 +130,8 @@ const sortedRows = computed(() => {
   cursor: pointer;
 }
 
-.data-table th.sortable:hover {
+.data-table th.sortable:hover,
+.data-table th.sortable:focus-visible {
   color: var(--text);
 }
 
@@ -128,7 +141,7 @@ const sortedRows = computed(() => {
 }
 
 .data-table td {
-  padding: 12px 16px;
+  padding: 11px 16px;
   border-bottom: 1px solid var(--border);
   color: var(--text);
 }
@@ -158,15 +171,14 @@ const sortedRows = computed(() => {
 }
 
 .empty-icon {
-  font-size: 32px;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .spinner {
   width: 24px;
   height: 24px;
   border: 3px solid var(--border);
-  border-top-color: var(--primary);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

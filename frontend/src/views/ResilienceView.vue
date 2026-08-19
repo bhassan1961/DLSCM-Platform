@@ -1,14 +1,15 @@
 <template>
   <div class="resilience">
+    <ErrorBanner :error="error" :on-retry="retryLoad" @dismiss="clearError" />
     <div class="page-header">
-      <h2>Community Toolkit</h2>
-      <p class="page-subtitle">Disaster preparedness checklists for communities</p>
+      <h2>{{ $t('resilience.title') }}</h2>
+      <p class="page-subtitle">{{ $t('resilience.subtitle') }}</p>
     </div>
 
     <!-- Overall Progress -->
     <div class="progress-card">
       <div class="progress-header">
-        <span class="progress-label">Overall Preparedness</span>
+        <span class="progress-label">{{ $t('resilience.overallPreparedness') }}</span>
         <span class="progress-pct">{{ overallPct }}%</span>
       </div>
       <div class="progress-track">
@@ -17,7 +18,7 @@
           :style="{ width: overallPct + '%', background: progressColor(overallPct) }"
         ></div>
       </div>
-      <p class="progress-summary">{{ totalChecked }} of {{ totalItems }} items complete</p>
+      <p class="progress-summary">{{ $t('resilience.progressSummary', { checked: totalChecked, total: totalItems }) }}</p>
     </div>
 
     <!-- Sections -->
@@ -25,11 +26,11 @@
       <div v-for="section in sections" :key="section.key" class="section-card">
         <div class="section-header">
           <div class="section-title-row">
-            <span class="section-icon">{{ section.icon }}</span>
+            <SvgIcon :name="section.iconName" :size="18" class="section-icon" />
             <h3 class="section-title">{{ section.title }}</h3>
           </div>
           <span class="section-progress" :class="{ complete: sectionComplete(section) }">
-            {{ sectionCheckedCount(section) }}/{{ section.items.length }} complete
+            {{ $t('resilience.sectionProgress', { done: sectionCheckedCount(section), total: section.items.length }) }}
           </span>
         </div>
         <div class="checklist">
@@ -57,6 +58,11 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import SvgIcon from '../components/common/SvgIcon.vue'
+import ErrorBanner from '../components/common/ErrorBanner.vue'
+import { useErrorHandler } from '../composables/useErrorHandler'
+
+const { error, handleError, clearError } = useErrorHandler()
 
 const STORAGE_KEY = 'dlscm-resilience-checklist'
 
@@ -64,7 +70,7 @@ const sections = [
   {
     key: 'contacts',
     title: 'Emergency Contacts',
-    icon: '☎',
+    iconName: 'coordination',
     items: [
       { id: 'contacts-1', label: 'Local emergency number' },
       { id: 'contacts-2', label: 'Hospital / clinic' },
@@ -76,7 +82,7 @@ const sections = [
   {
     key: 'evacuation',
     title: 'Evacuation Plan',
-    icon: '\u{1F6A8}',
+    iconName: 'risk',
     items: [
       { id: 'evac-1', label: 'Identified routes' },
       { id: 'evac-2', label: 'Meeting point' },
@@ -87,7 +93,7 @@ const sections = [
   {
     key: 'supplies',
     title: 'Supply Inventory',
-    icon: '\u{1F4E6}',
+    iconName: 'package',
     items: [
       { id: 'supply-1', label: 'Water (3 days)' },
       { id: 'supply-2', label: 'Non-perishable food' },
@@ -100,7 +106,7 @@ const sections = [
   {
     key: 'communication',
     title: 'Communication Plan',
-    icon: '\u{1F4E1}',
+    iconName: 'reports',
     items: [
       { id: 'comm-1', label: 'Family contact list' },
       { id: 'comm-2', label: 'Out-of-area contact' },
@@ -111,7 +117,7 @@ const sections = [
   {
     key: 'firstaid',
     title: 'First Aid Knowledge',
-    icon: '⚕',
+    iconName: 'medical',
     items: [
       { id: 'aid-1', label: 'CPR training' },
       { id: 'aid-2', label: 'Wound care basics' },
@@ -171,6 +177,10 @@ function progressColor(pct) {
   return 'var(--accent)'
 }
 
+function retryLoad() {
+  window.location.reload()
+}
+
 watch(checklist, saveChecklist, { deep: true })
 </script>
 
@@ -199,7 +209,7 @@ watch(checklist, saveChecklist, { deep: true })
 .progress-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 20px;
   margin-bottom: 24px;
 }
@@ -226,14 +236,14 @@ watch(checklist, saveChecklist, { deep: true })
 .progress-track {
   height: 10px;
   background: var(--bg);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   margin-bottom: 8px;
 }
 
 .progress-fill {
   height: 100%;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   transition: width 0.4s ease;
 }
 
@@ -252,8 +262,9 @@ watch(checklist, saveChecklist, { deep: true })
 .section-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .section-header {
@@ -271,7 +282,7 @@ watch(checklist, saveChecklist, { deep: true })
 }
 
 .section-icon {
-  font-size: 18px;
+  flex-shrink: 0;
 }
 
 .section-title {
@@ -285,7 +296,7 @@ watch(checklist, saveChecklist, { deep: true })
   font-weight: 600;
   color: var(--text-secondary);
   padding: 3px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--bg);
 }
 
@@ -304,7 +315,7 @@ watch(checklist, saveChecklist, { deep: true })
   align-items: center;
   gap: 12px;
   padding: 10px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.1s ease;
 }
@@ -323,7 +334,7 @@ watch(checklist, saveChecklist, { deep: true })
   width: 22px;
   height: 22px;
   border: 2px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;

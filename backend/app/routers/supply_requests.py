@@ -93,7 +93,7 @@ def _eager_query(db: Session):
     )
 
 
-@router.get("/", response_model=list[SupplyRequestOut])
+@router.get("", response_model=list[SupplyRequestOut])
 def list_requests(status: Optional[str] = None, db: Session = Depends(get_db)):
     q = _eager_query(db)
     if status:
@@ -102,7 +102,7 @@ def list_requests(status: Optional[str] = None, db: Session = Depends(get_db)):
     return [_to_out(r) for r in requests]
 
 
-@router.post("/", response_model=SupplyRequestOut)
+@router.post("", response_model=SupplyRequestOut)
 def create_request(req: SupplyRequestCreate, db: Session = Depends(get_db)):
     sr = SupplyRequest(
         title=req.title, priority=req.priority,

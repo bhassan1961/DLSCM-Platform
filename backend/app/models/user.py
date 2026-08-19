@@ -24,7 +24,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
-    role = Column(String, nullable=False)  # ops_director, field_coordinator, supply_manager, compliance_officer
+    password_hash = Column(String, nullable=True)
+    role = Column(String, nullable=False)  # admin, ops_director, field_coordinator, supply_manager, compliance_officer
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())

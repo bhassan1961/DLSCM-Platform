@@ -6,6 +6,7 @@ from app.models import (
     SupplyRequest, RequestItem, Alert, Shipment, ShipmentLeg,
     ThreeWEntry, DemandForecast, DonorReport, AfterActionReview,
     SurgeCapacityListing, Scenario,
+    Supplier, Kit, KitComponent, DonationInKind,
 )
 
 random.seed(42)
@@ -286,6 +287,145 @@ def seed_all():
                 status="available",
             )
             db.add(listing)
+        db.flush()
+
+        # ── Suppliers ───────────────────────────────────────────────────
+        suppliers = [
+            Supplier(name="Al-Rashid Trading Co.", category="food", country="Jordan", contact_email="procurement@alrashid.jo", lead_time_days=7, quality_rating=4.5, capacity_description="20 tonnes/week of shelf-stable food items", pre_qualified=True, notes="Long-standing WFP framework agreement holder"),
+            Supplier(name="MedSupply International", category="medical", country="Belgium", contact_email="orders@medsupply.be", lead_time_days=14, quality_rating=4.8, capacity_description="Full IEHK and surgical kit production line", pre_qualified=True, notes="WHO pre-qualified supplier for emergency health kits"),
+            Supplier(name="ShelterWorks Ltd.", category="shelter", country="China", contact_email="export@shelterworks.cn", lead_time_days=21, quality_rating=3.8, capacity_description="500 family tents per week, tarpaulins unlimited", pre_qualified=True, notes="IFRC frame agreement, ISO 9001 certified"),
+            Supplier(name="AquaPure Solutions", category="water", country="Kenya", contact_email="info@aquapure.co.ke", lead_time_days=5, quality_rating=4.2, capacity_description="Water purification tablets and filters, 10000 units/week", pre_qualified=True, notes="Regional supplier, fast delivery across East Africa"),
+            Supplier(name="FreightMaster Logistics", category="logistics", country="UAE", contact_email="ops@freightmaster.ae", lead_time_days=3, quality_rating=4.0, capacity_description="Air and sea freight, 200 tonnes/week capacity", pre_qualified=True, notes="Dedicated humanitarian logistics division"),
+            Supplier(name="Nairobi Textile Mills", category="nfi", country="Kenya", contact_email="sales@nairotex.co.ke", lead_time_days=10, quality_rating=3.5, capacity_description="Blankets, sleeping mats, mosquito nets", pre_qualified=False, notes="Under evaluation for pre-qualification"),
+            Supplier(name="BanglaPharm Ltd.", category="medical", country="Bangladesh", contact_email="export@banglapharm.bd", lead_time_days=12, quality_rating=3.9, capacity_description="ORS sachets, basic pharmaceuticals", pre_qualified=False, notes="Competitive pricing, recent quality audit passed"),
+            Supplier(name="GlobalKit Assembly", category="general", country="Germany", contact_email="kits@globalkit.de", lead_time_days=18, quality_rating=4.6, capacity_description="Custom kit assembly and packaging, 5000 kits/week", pre_qualified=True, notes="Specialized in hygiene and NFI kit assembly"),
+        ]
+        db.add_all(suppliers)
+        db.flush()
+
+        # ── Kits ───────────────────────────────────────────────────────
+        # items list indices: 0=HEB, 1=RUTF, 2=Rice, 3=Oil, 4=WaterPur, 5=JerryCan,
+        # 6=WaterFilter, 7=IEHK, 8=ORS, 9=SurgKit, 10=Tent, 11=Tarp, 12=Blanket,
+        # 13=HygieneKit, 14=Soap, 15=MHK, 16=KitchenSet, 17=SolarLantern, 18=SleepMat, 19=MosqNet
+        kit_data = [
+            ("Family Hygiene Kit", "Essential hygiene items for a family of 5 for one month", "family_hygiene", [
+                (13, 2),   # Hygiene Kit (Family)
+                (14, 4),   # Soap Bar 48-pack
+                (15, 1),   # Menstrual Hygiene Kit
+                (5, 2),    # Collapsible Jerry Can (10L)
+            ]),
+            ("Basic Shelter Kit", "Emergency shelter materials for one family", "shelter_basic", [
+                (10, 1),   # Family Tent (16m2)
+                (11, 3),   # Tarpaulin (4x6m)
+                (12, 5),   # Thermal Blanket
+                (18, 4),   # Sleeping Mat
+            ]),
+            ("Emergency Medical Kit", "First-response medical supplies for a health post", "medical_emergency", [
+                (7, 2),    # IEHK Basic Unit Kit
+                (8, 10),   # Oral Rehydration Salts
+                (9, 1),    # Surgical Supplies Kit
+            ]),
+            ("NFI Starter Kit", "Non-food items starter pack for displaced families", "nfi_starter", [
+                (16, 1),   # Kitchen Set (Family)
+                (17, 2),   # Solar Lantern
+                (18, 4),   # Sleeping Mat
+                (19, 5),   # Mosquito Net (LLIN)
+                (12, 3),   # Thermal Blanket
+            ]),
+        ]
+        kits = []
+        for kit_name, kit_desc, kit_cat, components in kit_data:
+            kit = Kit(name=kit_name, description=kit_desc, category=kit_cat)
+            db.add(kit)
+            db.flush()
+            kits.append(kit)
+            for item_list_idx, qty in components:
+                db.add(KitComponent(kit_id=kit.id, item_id=items[item_list_idx].id, quantity=qty))
+        db.flush()
+
+        # ── Donations In-Kind ─────────────────────────────────────────
+        donations = [
+            DonationInKind(
+                donor_name="Red Crescent Society of Turkey",
+                donor_contact="donations@kizilay.org.tr",
+                items_description="2000 thermal blankets and 500 sleeping mats for Syria earthquake response",
+                category="shelter", quantity=2500, unit="pieces",
+                quality_status="acceptable", warehouse_id=warehouses[2].id,
+                received_date=now - timedelta(days=15),
+                assessed_by="Fatima Njeri", notes="Good condition, stored at Amman depot",
+                status="stored",
+            ),
+            DonationInKind(
+                donor_name="Lions Club International - Dhaka Chapter",
+                donor_contact="dhaka@lionsclub.org",
+                items_description="Mixed food items including rice, lentils, and cooking oil",
+                category="food", quantity=800, unit="kg",
+                quality_status="requires_sorting", warehouse_id=warehouses[3].id,
+                received_date=now - timedelta(days=5),
+                assessed_by=None, notes="Needs sorting by expiry date before distribution",
+                status="assessed",
+            ),
+            DonationInKind(
+                donor_name="PharmaCorp CSR Initiative",
+                donor_contact="csr@pharmacorp.com",
+                items_description="ORS sachets, basic wound care supplies, and paracetamol",
+                category="medical", quantity=5000, unit="units",
+                quality_status="acceptable", warehouse_id=warehouses[0].id,
+                received_date=now - timedelta(days=8),
+                assessed_by="Claire Dubois", notes="WHO-certified products, 18-month shelf life remaining",
+                status="stored",
+            ),
+            DonationInKind(
+                donor_name="Community Drive - Mombasa",
+                donor_contact="admin@mombasacommunity.org",
+                items_description="Used clothing, kitchen utensils, and plastic sheeting",
+                category="mixed", quantity=350, unit="boxes",
+                quality_status="pending_assessment", warehouse_id=None,
+                received_date=now - timedelta(days=2),
+                assessed_by=None, notes="Awaiting quality assessment at Mombasa port",
+                status="received",
+            ),
+        ]
+        db.add_all(donations)
+        db.flush()
+
+        # ── After-Action Reviews ──────────────────────────────────────
+        after_action_reviews = [
+            AfterActionReview(
+                disaster_id=disasters[0].id,
+                title="Kenya Drought Response - Phase 1 Review",
+                review_date=now - timedelta(days=30),
+                response_time_hours=72.0,
+                cost_per_beneficiary=18.50,
+                stockout_events=3,
+                lessons_learned="Pre-positioning in Turkana was insufficient. Water purification supplies ran out within the first week. Local procurement channels proved more reliable than international shipments for food items.",
+                recommendations="Increase pre-positioned water stock by 200%. Establish standing agreements with local food suppliers. Deploy mobile storage units at onset of drought warnings.",
+                overall_score=62.0,
+            ),
+            AfterActionReview(
+                disaster_id=disasters[2].id,
+                title="Syria Earthquake - 90-Day After-Action Review",
+                review_date=now - timedelta(days=60),
+                response_time_hours=18.0,
+                cost_per_beneficiary=34.20,
+                stockout_events=7,
+                lessons_learned="Cross-border logistics through Gaziantep were effective but slowed by customs. Medical kits arrived 48 hours ahead of shelter materials. Coordination with local NGOs was strong in Aleppo city but weak in rural areas.",
+                recommendations="Negotiate pre-clearance for humanitarian cargo. Pair medical and shelter shipments. Expand rural partner network through OCHA coordination.",
+                overall_score=71.0,
+            ),
+            AfterActionReview(
+                disaster_id=disasters[3].id,
+                title="Cyclone Frieda - Immediate Response Review",
+                review_date=now - timedelta(days=10),
+                response_time_hours=36.0,
+                cost_per_beneficiary=22.80,
+                stockout_events=2,
+                lessons_learned="Dubai pre-positioned stock enabled rapid airlift. Port congestion in Beira delayed sea freight by 5 days. Community health workers were essential for cholera response coordination.",
+                recommendations="Maintain Dubai pre-positioning levels. Develop contingency routing through Dar es Salaam. Train additional community health volunteers in coastal zones.",
+                overall_score=78.0,
+            ),
+        ]
+        db.add_all(after_action_reviews)
         db.flush()
 
         db.commit()

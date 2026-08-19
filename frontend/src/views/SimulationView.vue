@@ -1,34 +1,35 @@
 <template>
   <div class="simulation">
+    <ErrorBanner :error="error" :on-retry="retryLoad" @dismiss="clearError" />
     <div class="page-header">
-      <h2>Scenario Simulation</h2>
-      <p class="page-subtitle">Model disaster scenarios and assess supply chain readiness</p>
+      <h2>{{ $t('simulation.title') }}</h2>
+      <p class="page-subtitle">{{ $t('simulation.subtitle') }}</p>
     </div>
 
     <div class="sim-layout">
       <!-- Scenario Builder -->
       <div class="builder-panel">
         <div class="panel-card">
-          <h3 class="panel-title">Scenario Builder</h3>
+          <h3 class="panel-title">{{ $t('simulation.scenarioBuilder') }}</h3>
           <form @submit.prevent="runSimulation" class="builder-form">
             <div class="form-group">
-              <label>Scenario Name</label>
-              <input v-model="form.name" type="text" placeholder="e.g. Nepal Earthquake 2025" required />
+              <label>{{ $t('simulation.scenarioName') }}</label>
+              <input v-model="form.name" type="text" :placeholder="$t('simulation.scenarioNamePlaceholder')" required />
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Disaster Type</label>
+                <label>{{ $t('simulation.disasterType') }}</label>
                 <select v-model="form.disaster_type" required>
-                  <option value="" disabled>Select type</option>
+                  <option value="" disabled>{{ $t('simulation.selectType') }}</option>
                   <option v-for="t in disasterTypes" :key="t" :value="t">
                     {{ t.charAt(0).toUpperCase() + t.slice(1) }}
                   </option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Severity</label>
+                <label>{{ $t('common.severity') }}</label>
                 <select v-model="form.severity" required>
-                  <option value="" disabled>Select severity</option>
+                  <option value="" disabled>{{ $t('simulation.selectSeverity') }}</option>
                   <option v-for="s in severities" :key="s" :value="s">
                     {{ s.charAt(0).toUpperCase() + s.slice(1) }}
                   </option>
@@ -36,26 +37,26 @@
               </div>
             </div>
             <div class="form-group">
-              <label>Country</label>
-              <input v-model="form.country" type="text" placeholder="e.g. Nepal" required />
+              <label>{{ $t('common.country') }}</label>
+              <input v-model="form.country" type="text" :placeholder="$t('simulation.countryPlaceholder')" required />
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Latitude</label>
+                <label>{{ $t('simulation.latitude') }}</label>
                 <input v-model.number="form.latitude" type="number" step="0.01" placeholder="27.7" required />
               </div>
               <div class="form-group">
-                <label>Longitude</label>
+                <label>{{ $t('simulation.longitude') }}</label>
                 <input v-model.number="form.longitude" type="number" step="0.01" placeholder="85.3" required />
               </div>
             </div>
             <div class="form-group">
-              <label>Affected Population</label>
+              <label>{{ $t('simulation.affectedPopulation') }}</label>
               <input v-model.number="form.affected_population" type="number" min="0" placeholder="500000" required />
             </div>
             <button type="submit" class="run-btn" :disabled="running">
               <span v-if="running" class="spinner-sm"></span>
-              {{ running ? 'Running...' : 'Run Simulation' }}
+              {{ running ? $t('simulation.running') : $t('simulation.runSimulation') }}
             </button>
             <p v-if="runError" class="form-error">{{ runError }}</p>
           </form>
@@ -65,12 +66,12 @@
       <!-- Results -->
       <div class="results-panel">
         <div v-if="!result && !running" class="empty-results">
-          <p>Configure a scenario and run a simulation to see results here.</p>
+          <p>{{ $t('simulation.emptyResults') }}</p>
         </div>
 
         <div v-if="running" class="loading-state">
           <div class="spinner"></div>
-          <span>Running simulation...</span>
+          <span>{{ $t('simulation.runningSimulation') }}</span>
         </div>
 
         <template v-if="result && !running">
@@ -78,27 +79,27 @@
           <div class="summary-cards">
             <div class="summary-card">
               <div class="summary-value">{{ result.estimated_response_hours?.toFixed(1) }}</div>
-              <div class="summary-label">Response Time (hrs)</div>
+              <div class="summary-label">{{ $t('simulation.responseTime') }}</div>
             </div>
             <div class="summary-card">
               <div class="summary-value">{{ result.nearest_warehouse_km?.toLocaleString() }}</div>
-              <div class="summary-label">Nearest Warehouse (km)</div>
+              <div class="summary-label">{{ $t('simulation.nearestWarehouse') }}</div>
             </div>
             <div class="summary-card">
               <div class="summary-value accent">{{ result.readiness_score?.toFixed(0) }}%</div>
-              <div class="summary-label">Readiness Score</div>
+              <div class="summary-label">{{ $t('simulation.readinessScore') }}</div>
             </div>
             <div class="summary-card">
               <div class="summary-value">{{ formatCost(result.estimated_cost_usd) }}</div>
-              <div class="summary-label">Estimated Cost (USD)</div>
+              <div class="summary-label">{{ $t('simulation.estimatedCost') }}</div>
             </div>
           </div>
 
           <!-- Damage Assessment -->
           <div v-if="result.damage_assessment" class="panel-card">
             <h3 class="panel-title">
-              Damage Assessment
-              <span class="overall-score">Overall: {{ result.damage_assessment.overall_index?.toFixed(1) }}</span>
+              {{ $t('simulation.damageAssessment') }}
+              <span class="overall-score">{{ $t('simulation.overall') }}: {{ result.damage_assessment.overall_index?.toFixed(1) }}</span>
             </h3>
             <div class="bar-chart">
               <div v-for="sector in damageSectors" :key="sector.key" class="bar-container">
@@ -116,7 +117,7 @@
 
           <!-- Demand Forecast -->
           <div v-if="result.demand_forecast" class="panel-card">
-            <h3 class="panel-title">Demand Forecast</h3>
+            <h3 class="panel-title">{{ $t('simulation.demandForecast') }}</h3>
             <div class="forecast-grid">
               <div v-for="(val, key) in result.demand_forecast" :key="key" class="forecast-item">
                 <div class="forecast-category">{{ formatCategory(key) }}</div>
@@ -130,7 +131,7 @@
 
     <!-- Saved Scenarios -->
     <div class="scenarios-section">
-      <h3 class="section-title">Saved Scenarios</h3>
+      <h3 class="section-title">{{ $t('simulation.savedScenarios') }}</h3>
       <DataTable :columns="scenarioColumns" :rows="scenarios" :loading="scenariosLoading" />
     </div>
   </div>
@@ -140,6 +141,10 @@
 import { ref, onMounted } from 'vue'
 import { simulationApi } from '../api/client'
 import DataTable from '../components/common/DataTable.vue'
+import ErrorBanner from '../components/common/ErrorBanner.vue'
+import { useErrorHandler } from '../composables/useErrorHandler'
+
+const { error, handleError, clearError } = useErrorHandler()
 
 const disasterTypes = ['earthquake', 'flood', 'hurricane', 'drought', 'conflict', 'epidemic']
 const severities = ['minor', 'moderate', 'major', 'catastrophic']
@@ -217,7 +222,7 @@ async function runSimulation() {
     // Refresh scenarios list
     fetchScenarios()
   } catch (e) {
-    console.error('Simulation failed:', e)
+    handleError(e, 'Simulation failed')
     runError.value = e.response?.data?.detail || 'Simulation failed. Please try again.'
   } finally {
     running.value = false
@@ -230,11 +235,16 @@ async function fetchScenarios() {
     const { data } = await simulationApi.scenarios()
     scenarios.value = Array.isArray(data) ? data : data.scenarios || []
   } catch (e) {
-    console.error('Failed to load scenarios:', e)
+    handleError(e, 'Failed to load scenarios')
     scenarios.value = []
   } finally {
     scenariosLoading.value = false
   }
+}
+
+function retryLoad() {
+  clearError()
+  fetchScenarios()
 }
 
 onMounted(fetchScenarios)
@@ -277,7 +287,7 @@ onMounted(fetchScenarios)
 .panel-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 20px;
   margin-bottom: 16px;
 }
@@ -322,7 +332,7 @@ onMounted(fetchScenarios)
 .form-group select {
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
   font-size: 14px;
@@ -353,7 +363,7 @@ onMounted(fetchScenarios)
   gap: 8px;
   padding: 12px 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--primary);
   color: #ffffff;
   font-size: 14px;
@@ -384,7 +394,7 @@ onMounted(fetchScenarios)
   min-height: 300px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 40px;
   color: var(--text-secondary);
   text-align: center;
@@ -401,7 +411,7 @@ onMounted(fetchScenarios)
 .summary-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 16px;
   text-align: center;
 }
@@ -447,13 +457,13 @@ onMounted(fetchScenarios)
 .bar-track {
   height: 24px;
   background: var(--bg);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .bar-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: width 0.6s ease;
 }
 
@@ -472,7 +482,7 @@ onMounted(fetchScenarios)
 
 .forecast-item {
   background: var(--bg);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 12px;
 }
 
@@ -521,7 +531,7 @@ onMounted(fetchScenarios)
   width: 28px;
   height: 28px;
   border: 3px solid var(--border);
-  border-top-color: var(--primary);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
