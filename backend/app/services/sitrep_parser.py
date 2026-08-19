@@ -1,28 +1,118 @@
 import re
-from typing import Optional
-
 
 DISASTER_KEYWORDS = {
-    "earthquake": ["earthquake", "seismic", "tremor", "aftershock", "magnitude", "richter"],
-    "flood": ["flood", "flooding", "inundation", "deluge", "monsoon", "flash flood", "water level"],
-    "cyclone": ["cyclone", "hurricane", "typhoon", "tropical storm", "storm surge", "wind speed"],
-    "drought": ["drought", "dry spell", "water scarcity", "failed rains", "famine", "food insecurity"],
-    "conflict": ["conflict", "armed", "displacement", "IDP", "refugees", "fighting", "violence"],
-    "epidemic": ["cholera", "outbreak", "epidemic", "pandemic", "disease", "infection", "cases reported"],
+    "earthquake": [
+        "earthquake",
+        "seismic",
+        "tremor",
+        "aftershock",
+        "magnitude",
+        "richter",
+    ],
+    "flood": [
+        "flood",
+        "flooding",
+        "inundation",
+        "deluge",
+        "monsoon",
+        "flash flood",
+        "water level",
+    ],
+    "cyclone": [
+        "cyclone",
+        "hurricane",
+        "typhoon",
+        "tropical storm",
+        "storm surge",
+        "wind speed",
+    ],
+    "drought": [
+        "drought",
+        "dry spell",
+        "water scarcity",
+        "failed rains",
+        "famine",
+        "food insecurity",
+    ],
+    "conflict": [
+        "conflict",
+        "armed",
+        "displacement",
+        "IDP",
+        "refugees",
+        "fighting",
+        "violence",
+    ],
+    "epidemic": [
+        "cholera",
+        "outbreak",
+        "epidemic",
+        "pandemic",
+        "disease",
+        "infection",
+        "cases reported",
+    ],
 }
 
 NEED_KEYWORDS = {
-    "food": ["food", "nutrition", "rations", "feeding", "malnutrition", "hunger", "RUTF"],
+    "food": [
+        "food",
+        "nutrition",
+        "rations",
+        "feeding",
+        "malnutrition",
+        "hunger",
+        "RUTF",
+    ],
     "water": ["water", "WASH", "sanitation", "hygiene", "purification", "latrine"],
-    "medical": ["medical", "health", "hospital", "clinic", "doctor", "nurse", "medicine", "surgical"],
-    "shelter": ["shelter", "tent", "tarpaulin", "housing", "displaced", "homeless", "camp"],
+    "medical": [
+        "medical",
+        "health",
+        "hospital",
+        "clinic",
+        "doctor",
+        "nurse",
+        "medicine",
+        "surgical",
+    ],
+    "shelter": [
+        "shelter",
+        "tent",
+        "tarpaulin",
+        "housing",
+        "displaced",
+        "homeless",
+        "camp",
+    ],
     "protection": ["protection", "GBV", "child protection", "safety", "security"],
-    "logistics": ["logistics", "transport", "road", "access", "supply chain", "warehouse"],
+    "logistics": [
+        "logistics",
+        "transport",
+        "road",
+        "access",
+        "supply chain",
+        "warehouse",
+    ],
 }
 
 URGENCY_INDICATORS = {
-    "critical": ["immediate", "urgent", "critical", "emergency", "life-threatening", "dire", "desperate"],
-    "high": ["high priority", "rapidly", "deteriorating", "significant", "severe", "escalating"],
+    "critical": [
+        "immediate",
+        "urgent",
+        "critical",
+        "emergency",
+        "life-threatening",
+        "dire",
+        "desperate",
+    ],
+    "high": [
+        "high priority",
+        "rapidly",
+        "deteriorating",
+        "significant",
+        "severe",
+        "escalating",
+    ],
     "medium": ["moderate", "ongoing", "continued", "sustained"],
     "low": ["stable", "improving", "minor", "limited"],
 }
@@ -55,9 +145,9 @@ def parse_sitrep(text: str) -> dict:
     # Extract affected population (look for numbers near population keywords)
     affected_population = None
     pop_patterns = [
-        r'(\d[\d,]*)\s*(?:people|persons|individuals|affected|displaced|refugees|IDPs|beneficiaries|population)',
-        r'(?:affected|displaced|impacting|reaching)\s*(?:approximately|about|nearly|over|more than)?\s*(\d[\d,]*)',
-        r'(\d[\d,]*)\s*(?:families|households)',
+        r"(\d[\d,]*)\s*(?:people|persons|individuals|affected|displaced|refugees|IDPs|beneficiaries|population)",
+        r"(?:affected|displaced|impacting|reaching)\s*(?:approximately|about|nearly|over|more than)?\s*(\d[\d,]*)",
+        r"(\d[\d,]*)\s*(?:families|households)",
     ]
     for pattern in pop_patterns:
         match = re.search(pattern, text, re.IGNORECASE)
@@ -65,7 +155,10 @@ def parse_sitrep(text: str) -> dict:
             num_str = match.group(1).replace(",", "")
             affected_population = int(num_str)
             # If families/households, multiply by 5
-            if "famil" in match.group(0).lower() or "household" in match.group(0).lower():
+            if (
+                "famil" in match.group(0).lower()
+                or "household" in match.group(0).lower()
+            ):
                 affected_population *= 5
             break
 
@@ -77,7 +170,7 @@ def parse_sitrep(text: str) -> dict:
             break
 
     # Generate summary (first two sentences or first 200 chars)
-    sentences = re.split(r'[.!?]+', text.strip())
+    sentences = re.split(r"[.!?]+", text.strip())
     summary_parts = [s.strip() for s in sentences[:2] if s.strip()]
     summary = ". ".join(summary_parts)
     if summary and not summary.endswith("."):

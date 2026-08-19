@@ -1,6 +1,5 @@
 import math
 import os
-from typing import Optional
 
 import httpx
 
@@ -27,7 +26,9 @@ ACTIVE_CONDITIONS = [
     {
         "id": "cond-1",
         "type": "flooding",
-        "latitude": 21.4272, "longitude": 92.0058, "radius_km": 50,
+        "latitude": 21.4272,
+        "longitude": 92.0058,
+        "radius_km": 50,
         "description": "Monsoon flooding - Cox's Bazar roads impassable",
         "severity": "severe",
         "modes_affected": ["road", "rail"],
@@ -35,7 +36,9 @@ ACTIVE_CONDITIONS = [
     {
         "id": "cond-2",
         "type": "conflict",
-        "latitude": 36.2021, "longitude": 37.1343, "radius_km": 80,
+        "latitude": 36.2021,
+        "longitude": 37.1343,
+        "radius_km": 80,
         "description": "Security corridor - Armed escort required for Aleppo route",
         "severity": "high",
         "modes_affected": ["road"],
@@ -43,7 +46,9 @@ ACTIVE_CONDITIONS = [
     {
         "id": "cond-3",
         "type": "port_congestion",
-        "latitude": -4.0435, "longitude": 39.6682, "radius_km": 20,
+        "latitude": -4.0435,
+        "longitude": 39.6682,
+        "radius_km": 20,
         "description": "Mombasa port congestion - 8 day clearance delays",
         "severity": "moderate",
         "modes_affected": ["sea"],
@@ -51,7 +56,9 @@ ACTIVE_CONDITIONS = [
     {
         "id": "cond-4",
         "type": "road_damage",
-        "latitude": -19.8436, "longitude": 34.8389, "radius_km": 40,
+        "latitude": -19.8436,
+        "longitude": 34.8389,
+        "radius_km": 40,
         "description": "Cyclone damage - Beira access roads partially destroyed",
         "severity": "severe",
         "modes_affected": ["road"],
@@ -64,12 +71,17 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     lat1_r, lat2_r = math.radians(lat1), math.radians(lat2)
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat1_r) * math.cos(lat2_r) * math.sin(dlon / 2) ** 2
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(lat1_r) * math.cos(lat2_r) * math.sin(dlon / 2) ** 2
+    )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
 
-def _check_conditions(lat1: float, lng1: float, lat2: float, lng2: float, mode: str) -> list:
+def _check_conditions(
+    lat1: float, lng1: float, lat2: float, lng2: float, mode: str
+) -> list:
     """Check which active conditions affect a leg."""
     affected = []
     for cond in ACTIVE_CONDITIONS:
@@ -82,12 +94,16 @@ def _check_conditions(lat1: float, lng1: float, lat2: float, lng2: float, mode: 
             affected.append(cond)
         dist_from = haversine(lat1, lng1, cond["latitude"], cond["longitude"])
         dist_to = haversine(lat2, lng2, cond["latitude"], cond["longitude"])
-        if (dist_from <= cond["radius_km"] or dist_to <= cond["radius_km"]) and cond not in affected:
+        if (
+            dist_from <= cond["radius_km"] or dist_to <= cond["radius_km"]
+        ) and cond not in affected:
             affected.append(cond)
     return affected
 
 
-async def _osrm_route(origin: dict, destination: dict, waypoints: Optional[list] = None) -> Optional[dict]:
+async def _osrm_route(
+    origin: dict, destination: dict, waypoints: list | None = None
+) -> dict | None:
     """Fetch a road route from OSRM public API."""
     coords = [f"{origin['lng']},{origin['lat']}"]
     if waypoints:
@@ -121,7 +137,7 @@ async def optimize_route_async(
     origin: dict,
     destination: dict,
     mode: str = "road",
-    waypoints: Optional[list] = None,
+    waypoints: list | None = None,
     avoid_conditions: bool = True,
 ) -> dict:
     """Enhanced route optimization with OSRM and condition awareness."""
@@ -154,33 +170,39 @@ async def optimize_route_async(
             distance_km = osrm_leg["distance"] / 1000.0
             duration_hours = osrm_leg["duration"] / 3600.0
 
-            conditions = _check_conditions(p1["lat"], p1["lng"], p2["lat"], p2["lng"], mode)
+            conditions = _check_conditions(
+                p1["lat"], p1["lng"], p2["lat"], p2["lng"], mode
+            )
             condition_delay = 0.0
             leg_warnings = []
             for c in conditions:
                 penalty = CONDITION_PENALTIES.get(c["type"], 1.0)
                 condition_delay += penalty
-                leg_warnings.append({
-                    "id": c["id"],
-                    "type": c["type"],
-                    "description": c["description"],
-                    "severity": c["severity"],
-                    "delay_hours": penalty,
-                })
+                leg_warnings.append(
+                    {
+                        "id": c["id"],
+                        "type": c["type"],
+                        "description": c["description"],
+                        "severity": c["severity"],
+                        "delay_hours": penalty,
+                    }
+                )
                 if c not in route_conditions:
                     route_conditions.append(c)
 
             duration_hours += condition_delay
 
-            legs.append({
-                "leg_order": i + 1,
-                "from": {"lat": p1["lat"], "lng": p1["lng"]},
-                "to": {"lat": p2["lat"], "lng": p2["lng"]},
-                "mode": mode,
-                "distance_km": round(distance_km, 1),
-                "duration_hours": round(duration_hours, 2),
-                "conditions": leg_warnings,
-            })
+            legs.append(
+                {
+                    "leg_order": i + 1,
+                    "from": {"lat": p1["lat"], "lng": p1["lng"]},
+                    "to": {"lat": p2["lat"], "lng": p2["lng"]},
+                    "mode": mode,
+                    "distance_km": round(distance_km, 1),
+                    "duration_hours": round(duration_hours, 2),
+                    "conditions": leg_warnings,
+                }
+            )
             total_distance += distance_km
             total_duration += duration_hours
     else:
@@ -194,33 +216,39 @@ async def optimize_route_async(
 
             duration = distance / speed
 
-            conditions = _check_conditions(p1["lat"], p1["lng"], p2["lat"], p2["lng"], mode)
+            conditions = _check_conditions(
+                p1["lat"], p1["lng"], p2["lat"], p2["lng"], mode
+            )
             condition_delay = 0.0
             leg_warnings = []
             for c in conditions:
                 penalty = CONDITION_PENALTIES.get(c["type"], 1.0)
                 condition_delay += penalty
-                leg_warnings.append({
-                    "id": c["id"],
-                    "type": c["type"],
-                    "description": c["description"],
-                    "severity": c["severity"],
-                    "delay_hours": penalty,
-                })
+                leg_warnings.append(
+                    {
+                        "id": c["id"],
+                        "type": c["type"],
+                        "description": c["description"],
+                        "severity": c["severity"],
+                        "delay_hours": penalty,
+                    }
+                )
                 if c not in route_conditions:
                     route_conditions.append(c)
 
             duration += condition_delay
 
-            legs.append({
-                "leg_order": i + 1,
-                "from": {"lat": p1["lat"], "lng": p1["lng"]},
-                "to": {"lat": p2["lat"], "lng": p2["lng"]},
-                "mode": mode,
-                "distance_km": round(distance, 1),
-                "duration_hours": round(duration, 2),
-                "conditions": leg_warnings,
-            })
+            legs.append(
+                {
+                    "leg_order": i + 1,
+                    "from": {"lat": p1["lat"], "lng": p1["lng"]},
+                    "to": {"lat": p2["lat"], "lng": p2["lng"]},
+                    "mode": mode,
+                    "distance_km": round(distance, 1),
+                    "duration_hours": round(duration, 2),
+                    "conditions": leg_warnings,
+                }
+            )
             total_distance += distance
             total_duration += duration
 
@@ -247,10 +275,11 @@ def optimize_route(
     origin: dict,
     destination: dict,
     mode: str = "road",
-    waypoints: Optional[list] = None,
+    waypoints: list | None = None,
 ) -> dict:
     """Synchronous fallback for backward compatibility."""
     import asyncio
+
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
@@ -280,14 +309,16 @@ def _sync_optimize(origin, destination, mode, waypoints):
         if mode in ("road", "rail"):
             distance *= 1.3
         duration = distance / speed
-        legs.append({
-            "leg_order": i + 1,
-            "from": {"lat": p1["lat"], "lng": p1["lng"]},
-            "to": {"lat": p2["lat"], "lng": p2["lng"]},
-            "mode": mode,
-            "distance_km": round(distance, 1),
-            "duration_hours": round(duration, 2),
-        })
+        legs.append(
+            {
+                "leg_order": i + 1,
+                "from": {"lat": p1["lat"], "lng": p1["lng"]},
+                "to": {"lat": p2["lat"], "lng": p2["lng"]},
+                "mode": mode,
+                "distance_km": round(distance, 1),
+                "duration_hours": round(duration, 2),
+            }
+        )
         total_distance += distance
         total_duration += duration
 

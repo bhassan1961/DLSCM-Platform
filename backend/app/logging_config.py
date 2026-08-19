@@ -1,5 +1,5 @@
-import logging
 import json
+import logging
 import sys
 import uuid
 from contextvars import ContextVar
@@ -19,7 +19,15 @@ class JSONFormatter(logging.Formatter):
         }
         if record.exc_info and record.exc_info[0]:
             log_entry["exception"] = self.formatException(record.exc_info)
-        for key in ("user_email", "method", "path", "status_code", "duration_ms", "resource_type", "action"):
+        for key in (
+            "user_email",
+            "method",
+            "path",
+            "status_code",
+            "duration_ms",
+            "resource_type",
+            "action",
+        ):
             val = getattr(record, key, None)
             if val is not None:
                 log_entry[key] = val

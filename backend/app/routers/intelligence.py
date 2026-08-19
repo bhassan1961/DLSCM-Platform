@@ -9,11 +9,15 @@ Provides aggregated intelligence feeds per disaster from:
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import Optional
 
 from app.database import get_db
 from app.models.disaster import Disaster
-from app.services.intelligence import get_crisis_intelligence, fetch_gdacs_live_alerts, fetch_live_news, ALL_NEWS_FEEDS
+from app.services.intelligence import (
+    ALL_NEWS_FEEDS,
+    fetch_gdacs_live_alerts,
+    fetch_live_news,
+    get_crisis_intelligence,
+)
 
 router = APIRouter(prefix="/api/v1/intelligence", tags=["Intelligence"])
 
@@ -33,7 +37,7 @@ async def list_available_feeds():
 
 @router.get("/news")
 async def get_live_news(
-    feeds: Optional[str] = Query(None, description="Comma-separated feed IDs to fetch"),
+    feeds: str | None = Query(None, description="Comma-separated feed IDs to fetch"),
     limit: int = Query(20, ge=1, le=50),
 ):
     """Fetch latest news from RSS feeds. Pass ?feeds=reliefweb,icrc to select sources."""
@@ -45,7 +49,7 @@ async def get_live_news(
 @router.get("")
 async def list_intelligence_summary(
     db: Session = Depends(get_db),
-    status: Optional[str] = Query("active"),
+    status: str | None = Query("active"),
 ):
     """Get a summary of available intelligence for all active disasters."""
     query = db.query(Disaster)
@@ -55,16 +59,18 @@ async def list_intelligence_summary(
 
     summaries = []
     for d in disasters:
-        summaries.append({
-            "disaster_id": d.id,
-            "disaster_name": d.name,
-            "country": d.country,
-            "disaster_type": d.disaster_type,
-            "severity": d.severity,
-            "status": d.status,
-            "affected_population": d.affected_population,
-            "coordinates": {"lat": d.latitude, "lng": d.longitude},
-        })
+        summaries.append(
+            {
+                "disaster_id": d.id,
+                "disaster_name": d.name,
+                "country": d.country,
+                "disaster_type": d.disaster_type,
+                "severity": d.severity,
+                "status": d.status,
+                "affected_population": d.affected_population,
+                "coordinates": {"lat": d.latitude, "lng": d.longitude},
+            }
+        )
 
     return {"disasters": summaries, "total": len(summaries)}
 

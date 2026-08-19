@@ -1,13 +1,30 @@
 import math
+
 import numpy as np
 
 CATEGORY_RATES = {
     "food": {"rate": 0.6, "unit": "kg", "description": "Food rations"},
     "water": {"rate": 3.0, "unit": "liters", "description": "Safe drinking water"},
-    "medical": {"rate": 0.015, "unit": "treatments", "description": "Medical treatments (15 per 1000/day)"},
-    "shelter": {"rate": 0.2, "unit": "units", "description": "Shelter units (1 per family of 5)"},
-    "hygiene": {"rate": 0.00667, "unit": "kits", "description": "Hygiene kits (1 per family/month)"},
-    "nfi": {"rate": 0.6, "unit": "items", "description": "Non-food items (3 per family of 5)"},
+    "medical": {
+        "rate": 0.015,
+        "unit": "treatments",
+        "description": "Medical treatments (15 per 1000/day)",
+    },
+    "shelter": {
+        "rate": 0.2,
+        "unit": "units",
+        "description": "Shelter units (1 per family of 5)",
+    },
+    "hygiene": {
+        "rate": 0.00667,
+        "unit": "kits",
+        "description": "Hygiene kits (1 per family/month)",
+    },
+    "nfi": {
+        "rate": 0.6,
+        "unit": "items",
+        "description": "Non-food items (3 per family of 5)",
+    },
 }
 
 SEVERITY_FACTORS = {
@@ -38,8 +55,8 @@ def _decompose_time_series(series: np.ndarray, period: int = 7) -> dict:
 
     kernel = np.ones(period) / period
     trend = np.convolve(series, kernel, mode="same")
-    trend[:period // 2] = trend[period // 2]
-    trend[-(period // 2):] = trend[-(period // 2) - 1]
+    trend[: period // 2] = trend[period // 2]
+    trend[-(period // 2) :] = trend[-(period // 2) - 1]
 
     detrended = series - trend
 
@@ -58,8 +75,12 @@ def _decompose_time_series(series: np.ndarray, period: int = 7) -> dict:
         "trend": trend,
         "seasonal": seasonal,
         "residual": residual,
-        "seasonal_strength": float(1 - np.var(residual) / max(np.var(detrended), 1e-10)),
-        "trend_strength": float(1 - np.var(residual) / max(np.var(series - seasonal), 1e-10)),
+        "seasonal_strength": float(
+            1 - np.var(residual) / max(np.var(detrended), 1e-10)
+        ),
+        "trend_strength": float(
+            1 - np.var(residual) / max(np.var(series - seasonal), 1e-10)
+        ),
     }
 
 
@@ -68,8 +89,8 @@ def _build_ml_forecast(
     severity: str,
     affected_population: int,
     days_ahead: int,
-    risk_context: dict = None,
-    disruption_context: dict = None,
+    risk_context: dict | None = None,
+    disruption_context: dict | None = None,
 ) -> dict:
     """Enhanced forecast with time-series decomposition and cross-model inputs."""
     try:
@@ -90,7 +111,9 @@ def _build_ml_forecast(
         if disruption_context:
             suppliers = disruption_context.get("suppliers", [])
             if suppliers:
-                high_risk = sum(1 for s in suppliers if s.get("risk_level") in ("critical", "high"))
+                high_risk = sum(
+                    1 for s in suppliers if s.get("risk_level") in ("critical", "high")
+                )
                 supply_risk = min(1.0, high_risk / max(len(suppliers), 1))
 
         np.random.seed(hash((disaster_type, severity, affected_population)) % (2**31))
@@ -117,25 +140,39 @@ def _build_ml_forecast(
             disruption_feat = np.random.uniform(0, 0.5)
 
             features = [
-                pop / 1e6, sev, day_norm,
-                weekly_cycle, biweekly_cycle, monthly_cycle,
+                pop / 1e6,
+                sev,
+                day_norm,
+                weekly_cycle,
+                biweekly_cycle,
+                monthly_cycle,
                 trend,
-                risk_feat, disruption_feat,
+                risk_feat,
+                disruption_feat,
             ] + type_features
 
             X_train.append(features)
 
             for cat, info in CATEGORY_RATES.items():
                 base = info["rate"] * pop * sev
-                seasonal_effect = 1 + 0.12 * weekly_cycle + 0.05 * biweekly_cycle + 0.03 * monthly_cycle
+                seasonal_effect = (
+                    1
+                    + 0.12 * weekly_cycle
+                    + 0.05 * biweekly_cycle
+                    + 0.03 * monthly_cycle
+                )
                 supply_effect = 1 + disruption_feat * 0.2
                 noise = np.random.normal(1.0, 0.08)
-                y_train[cat].append(base * seasonal_effect * trend * risk_feat * supply_effect * noise)
+                y_train[cat].append(
+                    base * seasonal_effect * trend * risk_feat * supply_effect * noise
+                )
 
         X_train = np.array(X_train)
         models = {}
         for cat in CATEGORY_RATES:
-            model = GradientBoostingRegressor(n_estimators=80, max_depth=5, learning_rate=0.1, random_state=42)
+            model = GradientBoostingRegressor(
+                n_estimators=80, max_depth=5, learning_rate=0.1, random_state=42
+            )
             model.fit(X_train, y_train[cat])
             models[cat] = model
 
@@ -151,12 +188,22 @@ def _build_ml_forecast(
                 if disaster_type in ("conflict", "drought"):
                     trend = 1.0 + 0.002 * day
 
-                features = np.array([[
-                    affected_population / 1e6, sev_val, day / 90.0,
-                    weekly_cycle, biweekly_cycle, monthly_cycle,
-                    trend,
-                    risk_multiplier, supply_risk,
-                ] + type_features])
+                features = np.array(
+                    [
+                        [
+                            affected_population / 1e6,
+                            sev_val,
+                            day / 90.0,
+                            weekly_cycle,
+                            biweekly_cycle,
+                            monthly_cycle,
+                            trend,
+                            risk_multiplier,
+                            supply_risk,
+                        ]
+                        + type_features
+                    ]
+                )
 
                 pred = max(0, float(models[cat].predict(features)[0]))
                 daily_values.append(pred)
@@ -176,13 +223,34 @@ def _build_ml_forecast(
             daily_values = [round(v, 1) for v in daily_values]
 
             feature_names = [
-                "population", "severity", "day", "weekly", "biweekly", "monthly",
-                "trend", "risk", "supply_disruption",
-            ] + [f"type_{t}" for t in ["drought", "flood", "earthquake", "cyclone", "conflict", "epidemic", "urgency", "spread"]]
-            importances = dict(zip(
-                feature_names,
-                [round(float(v), 4) for v in models[cat].feature_importances_],
-            ))
+                "population",
+                "severity",
+                "day",
+                "weekly",
+                "biweekly",
+                "monthly",
+                "trend",
+                "risk",
+                "supply_disruption",
+            ] + [
+                f"type_{t}"
+                for t in [
+                    "drought",
+                    "flood",
+                    "earthquake",
+                    "cyclone",
+                    "conflict",
+                    "epidemic",
+                    "urgency",
+                    "spread",
+                ]
+            ]
+            importances = dict(
+                zip(
+                    feature_names,
+                    [round(float(v), 4) for v in models[cat].feature_importances_],
+                )
+            )
 
             result[cat] = {
                 "total": round(sum(daily_values), 1),
@@ -195,7 +263,9 @@ def _build_ml_forecast(
                 "decomposition": {
                     "seasonal_strength": round(decomp["seasonal_strength"], 3),
                     "trend_strength": round(decomp["trend_strength"], 3),
-                    "trend_direction": "increasing" if decomp["trend"][-1] > decomp["trend"][0] else "decreasing",
+                    "trend_direction": "increasing"
+                    if decomp["trend"][-1] > decomp["trend"][0]
+                    else "decreasing",
                     "residual_std": round(residual_std, 2),
                 },
                 "feature_importances": importances,
@@ -216,11 +286,14 @@ def forecast_demand(
     severity: str,
     affected_population: int,
     days_ahead: int = 30,
-    risk_context: dict = None,
-    disruption_context: dict = None,
+    risk_context: dict | None = None,
+    disruption_context: dict | None = None,
 ) -> dict:
     ml_result = _build_ml_forecast(
-        disaster_type, severity, affected_population, days_ahead,
+        disaster_type,
+        severity,
+        affected_population,
+        days_ahead,
         risk_context=risk_context,
         disruption_context=disruption_context,
     )

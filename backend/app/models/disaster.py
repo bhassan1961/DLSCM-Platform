@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, func
+from sqlalchemy import Column, DateTime, Float, Integer, String, Text, func
 from sqlalchemy.orm import relationship
+
 from app.database import Base
 
 
@@ -8,9 +9,13 @@ class Disaster(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    disaster_type = Column(String, nullable=False)  # drought, flood, earthquake, cyclone, conflict, epidemic
+    disaster_type = Column(
+        String, nullable=False
+    )  # drought, flood, earthquake, cyclone, conflict, epidemic
     severity = Column(String, nullable=False)  # minor, moderate, major, catastrophic
-    status = Column(String, nullable=False, default="active")  # active, monitoring, resolved
+    status = Column(
+        String, nullable=False, default="active"
+    )  # active, monitoring, resolved
     country = Column(String, nullable=False)
     region = Column(String)
     latitude = Column(Float, nullable=False)

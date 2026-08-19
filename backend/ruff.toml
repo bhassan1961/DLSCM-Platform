@@ -1,0 +1,5 @@
+[lint]
+ignore = [
+    "B008",    # Depends() in function defaults is the standard FastAPI pattern
+    "DTZ007",  # strptime without %z — we handle tz-naive results explicitly
+]

@@ -1,6 +1,7 @@
+from typing import Any
+
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import Any, Optional
 
 router = APIRouter(prefix="/api/v1/sync", tags=["sync"])
 
@@ -16,7 +17,7 @@ class MergeRequest(BaseModel):
 
 class MergeResponse(BaseModel):
     status: str
-    merged_doc: Optional[dict[str, Any]] = None
+    merged_doc: dict[str, Any] | None = None
     conflict: bool = False
 
 
@@ -95,7 +96,7 @@ def get_collection_state(collection: str):
     docs = {}
     for key, doc in CRDT_STORE.items():
         if key.startswith(prefix):
-            doc_id = key[len(prefix):]
+            doc_id = key[len(prefix) :]
             if not doc.get("deleted", False):
                 plain = {"id": doc_id}
                 for field, reg in doc.get("fields", {}).items():

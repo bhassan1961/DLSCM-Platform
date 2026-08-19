@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, func
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import relationship
+
 from app.database import Base
 
 
@@ -8,8 +9,12 @@ class SupplyRequest(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
-    status = Column(String, nullable=False, default="pending")  # pending, approved, sourcing, dispatched, delivered, cancelled
-    priority = Column(String, nullable=False, default="medium")  # critical, high, medium, low
+    status = Column(
+        String, nullable=False, default="pending"
+    )  # pending, approved, sourcing, dispatched, delivered, cancelled
+    priority = Column(
+        String, nullable=False, default="medium"
+    )  # critical, high, medium, low
     disaster_id = Column(Integer, ForeignKey("disasters.id"), nullable=False)
     requester_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     destination_lat = Column(Float, nullable=False)

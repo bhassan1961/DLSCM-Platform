@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
 from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.supplier import Supplier
@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/v1/suppliers", tags=["suppliers"])
 
 # ── Schemas ────────────────────────────────────────────────────────────
 
+
 class SupplierOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -20,47 +21,56 @@ class SupplierOut(BaseModel):
     name: str
     category: str
     country: str
-    contact_email: Optional[str] = None
-    lead_time_days: Optional[int] = None
-    quality_rating: Optional[float] = None
-    capacity_description: Optional[str] = None
+    contact_email: str | None = None
+    lead_time_days: int | None = None
+    quality_rating: float | None = None
+    capacity_description: str | None = None
     pre_qualified: bool = False
-    notes: Optional[str] = None
-    created_at: Optional[datetime] = None
+    notes: str | None = None
+    created_at: datetime | None = None
 
 
 class SupplierCreate(BaseModel):
     name: str
     category: str
     country: str
-    contact_email: Optional[str] = None
-    lead_time_days: Optional[int] = None
-    quality_rating: Optional[float] = None
-    capacity_description: Optional[str] = None
+    contact_email: str | None = None
+    lead_time_days: int | None = None
+    quality_rating: float | None = None
+    capacity_description: str | None = None
     pre_qualified: bool = False
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class SupplierUpdate(BaseModel):
-    name: Optional[str] = None
-    category: Optional[str] = None
-    country: Optional[str] = None
-    contact_email: Optional[str] = None
-    lead_time_days: Optional[int] = None
-    quality_rating: Optional[float] = None
-    capacity_description: Optional[str] = None
-    pre_qualified: Optional[bool] = None
-    notes: Optional[str] = None
+    name: str | None = None
+    category: str | None = None
+    country: str | None = None
+    contact_email: str | None = None
+    lead_time_days: int | None = None
+    quality_rating: float | None = None
+    capacity_description: str | None = None
+    pre_qualified: bool | None = None
+    notes: str | None = None
 
 
-VALID_CATEGORIES = {"food", "medical", "shelter", "logistics", "water", "nfi", "general"}
+VALID_CATEGORIES = {
+    "food",
+    "medical",
+    "shelter",
+    "logistics",
+    "water",
+    "nfi",
+    "general",
+}
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────
 
+
 @router.get("", response_model=list[SupplierOut])
 def list_suppliers(
-    category: Optional[str] = Query(None, description="Filter by supplier category"),
+    category: str | None = Query(None, description="Filter by supplier category"),
     db: Session = Depends(get_db),
 ):
     query = db.query(Supplier)
@@ -73,7 +83,10 @@ def list_suppliers(
 @router.post("", response_model=SupplierOut)
 def create_supplier(supplier: SupplierCreate, db: Session = Depends(get_db)):
     if supplier.category not in VALID_CATEGORIES:
-        raise HTTPException(status_code=400, detail=f"Invalid category. Must be one of: {VALID_CATEGORIES}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid category. Must be one of: {VALID_CATEGORIES}",
+        )
     s = Supplier(**supplier.model_dump())
     db.add(s)
     db.commit()
@@ -82,13 +95,18 @@ def create_supplier(supplier: SupplierCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{supplier_id}", response_model=SupplierOut)
-def update_supplier(supplier_id: int, update: SupplierUpdate, db: Session = Depends(get_db)):
+def update_supplier(
+    supplier_id: int, update: SupplierUpdate, db: Session = Depends(get_db)
+):
     s = db.query(Supplier).filter(Supplier.id == supplier_id).first()
     if not s:
         raise HTTPException(status_code=404, detail="Supplier not found")
     update_data = update.model_dump(exclude_unset=True)
     if "category" in update_data and update_data["category"] not in VALID_CATEGORIES:
-        raise HTTPException(status_code=400, detail=f"Invalid category. Must be one of: {VALID_CATEGORIES}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid category. Must be one of: {VALID_CATEGORIES}",
+        )
     for key, value in update_data.items():
         setattr(s, key, value)
     db.commit()
@@ -100,7 +118,10 @@ def update_supplier(supplier_id: int, update: SupplierUpdate, db: Session = Depe
 def get_disruption_predictions(db: Session = Depends(get_db)):
     suppliers = db.query(Supplier).all()
     if not suppliers:
-        return {"suppliers": [], "model_info": {"algorithm": "none", "note": "No suppliers in database"}}
+        return {
+            "suppliers": [],
+            "model_info": {"algorithm": "none", "note": "No suppliers in database"},
+        }
     supplier_data = [
         {
             "id": s.id,

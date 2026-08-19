@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.inventory import Warehouse, Stock, Item
+from app.models.inventory import Item, Stock, Warehouse
 from app.models.supplier import Supplier
+from app.services.disruption import predict_disruptions
 from app.services.prepositioning import optimize_prepositioning
 from app.services.risk_model import RISK_PROFILES, calculate_risk
-from app.services.disruption import predict_disruptions
 
 router = APIRouter(prefix="/api/v1/prepositioning", tags=["prepositioning"])
 
@@ -17,27 +17,31 @@ def get_recommendations(db: Session = Depends(get_db)):
     warehouse_data = []
     for w in warehouses:
         stock_count = db.query(Stock).filter(Stock.warehouse_id == w.id).count()
-        warehouse_data.append({
-            "id": w.id,
-            "name": w.name,
-            "latitude": w.latitude,
-            "longitude": w.longitude,
-            "capacity_m3": w.capacity_m3,
-            "current_stock_count": stock_count,
-            "location": w.location,
-        })
+        warehouse_data.append(
+            {
+                "id": w.id,
+                "name": w.name,
+                "latitude": w.latitude,
+                "longitude": w.longitude,
+                "capacity_m3": w.capacity_m3,
+                "current_stock_count": stock_count,
+                "location": w.location,
+            }
+        )
 
     risk_zones = []
     for region_key, profile in RISK_PROFILES.items():
         risk_result = calculate_risk(region_key)
-        risk_zones.append({
-            "name": profile["name"],
-            "latitude": profile["latitude"],
-            "longitude": profile["longitude"],
-            "risk_score": risk_result["composite_score"],
-            "risk_level": risk_result["risk_level"],
-            "dominant_hazard": risk_result["dominant_hazard"],
-        })
+        risk_zones.append(
+            {
+                "name": profile["name"],
+                "latitude": profile["latitude"],
+                "longitude": profile["longitude"],
+                "risk_score": risk_result["composite_score"],
+                "risk_level": risk_result["risk_level"],
+                "dominant_hazard": risk_result["dominant_hazard"],
+            }
+        )
 
     disruption_ctx = None
     suppliers = db.query(Supplier).all()
@@ -57,7 +61,9 @@ def get_recommendations(db: Session = Depends(get_db)):
         ]
         disruption_ctx = predict_disruptions(supplier_data)
 
-    recommendations = optimize_prepositioning(warehouse_data, risk_zones, disruption_context=disruption_ctx)
+    recommendations = optimize_prepositioning(
+        warehouse_data, risk_zones, disruption_context=disruption_ctx
+    )
 
     # Enhance with current stock details per warehouse
     for rec in recommendations:
@@ -71,14 +77,20 @@ def get_recommendations(db: Session = Depends(get_db)):
         for stock, item in stocks:
             cat = item.category
             if cat not in stock_by_category:
-                stock_by_category[cat] = {"category": cat, "total_quantity": 0, "items": []}
+                stock_by_category[cat] = {
+                    "category": cat,
+                    "total_quantity": 0,
+                    "items": [],
+                }
             stock_by_category[cat]["total_quantity"] += stock.quantity
-            stock_by_category[cat]["items"].append({
-                "name": item.name,
-                "sku": item.sku,
-                "quantity": stock.quantity,
-                "unit": item.unit,
-            })
+            stock_by_category[cat]["items"].append(
+                {
+                    "name": item.name,
+                    "sku": item.sku,
+                    "quantity": stock.quantity,
+                    "unit": item.unit,
+                }
+            )
         rec["current_stock_by_category"] = list(stock_by_category.values())
 
     return {

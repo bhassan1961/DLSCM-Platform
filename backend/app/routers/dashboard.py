@@ -1,20 +1,21 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import func
 from pydantic import BaseModel
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.disaster import Disaster
-from app.models.inventory import Warehouse, Stock
-from app.models.supply_request import SupplyRequest
-from app.models.shipment import Shipment
 from app.models.alert import Alert
+from app.models.disaster import Disaster
+from app.models.inventory import Stock, Warehouse
+from app.models.shipment import Shipment
+from app.models.supply_request import SupplyRequest
 from app.models.user import Organization
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────
+
 
 class DashboardStats(BaseModel):
     active_disasters: int
@@ -29,12 +30,17 @@ class DashboardStats(BaseModel):
 
 # ── Endpoints ──────────────────────────────────────────────────────────
 
+
 @router.get("/stats", response_model=DashboardStats)
 def get_dashboard_stats(db: Session = Depends(get_db)):
     active_disasters = db.query(Disaster).filter(Disaster.status == "active").count()
     total_warehouses = db.query(Warehouse).count()
-    pending_requests = db.query(SupplyRequest).filter(SupplyRequest.status == "pending").count()
-    in_transit_shipments = db.query(Shipment).filter(Shipment.status == "in_transit").count()
+    pending_requests = (
+        db.query(SupplyRequest).filter(SupplyRequest.status == "pending").count()
+    )
+    in_transit_shipments = (
+        db.query(Shipment).filter(Shipment.status == "in_transit").count()
+    )
     active_alerts = db.query(Alert).filter(Alert.status == "active").count()
     total_organizations = db.query(Organization).count()
     total_stock_items = db.query(func.coalesce(func.sum(Stock.quantity), 0)).scalar()

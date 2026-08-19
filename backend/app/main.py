@@ -1,42 +1,47 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect
+
+from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import engine, Base
-from app.seed import seed_all
-from app.auth import require_auth
-from app.logging_config import setup_logging, get_logger
-from app.websocket_manager import ws_manager
-from app.security import SecurityHeadersMiddleware, RequestLoggingMiddleware, RateLimitMiddleware
 import app.models as _models  # noqa: F401
+from app.auth import require_auth
+from app.database import Base, engine
+from app.logging_config import get_logger, setup_logging
 from app.routers import (
-    auth,
-    inventory,
-    supply_requests,
-    disasters,
     alerts,
-    shipments,
-    dashboard,
+    anomalies,
+    audit,
+    auth,
+    compliance,
     coordination,
+    dashboard,
+    disasters,
+    donations,
+    edxl,
     forecasting,
-    routing,
-    reports,
+    intelligence,
+    inventory,
+    kits,
     marketplace,
-    simulation,
+    prepositioning,
+    recovery,
+    reports,
     risk,
+    routing,
+    shipments,
+    simulation,
     sitrep,
     suppliers,
-    kits,
-    audit,
-    donations,
-    compliance,
-    intelligence,
-    prepositioning,
-    edxl,
-    recovery,
+    supply_requests,
     sync,
-    anomalies,
 )
+from app.security import (
+    RateLimitMiddleware,
+    RequestLoggingMiddleware,
+    SecurityHeadersMiddleware,
+)
+from app.seed import seed_all
+from app.websocket_manager import ws_manager
 
 logger = get_logger("app")
 
@@ -108,23 +113,27 @@ async def websocket_endpoint(websocket: WebSocket):
     await ws_manager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
 
 
 # ── Audit Logging Middleware ──────────────────────────────────────────
 import json
+
+from starlette.requests import Request
+from starlette.responses import Response
+
+from app.auth import decode_token
 from app.database import SessionLocal
 from app.models.audit_log import AuditLog
-from app.auth import decode_token
-from starlette.requests import Request
-from starlette.responses import Response, StreamingResponse
 
 
 @app.middleware("http")
 async def audit_logging_middleware(request: Request, call_next):
-    if request.method in ("GET", "HEAD", "OPTIONS") or not request.url.path.startswith("/api/"):
+    if request.method in ("GET", "HEAD", "OPTIONS") or not request.url.path.startswith(
+        "/api/"
+    ):
         return await call_next(request)
 
     body_bytes = await request.body()
@@ -133,7 +142,11 @@ async def audit_logging_middleware(request: Request, call_next):
         try:
             request_body = json.loads(body_bytes)
             if isinstance(request_body, dict):
-                request_body = {k: v for k, v in request_body.items() if k not in ("password", "current_password", "new_password")}
+                request_body = {
+                    k: v
+                    for k, v in request_body.items()
+                    if k not in ("password", "current_password", "new_password")
+                }
         except (json.JSONDecodeError, UnicodeDecodeError):
             request_body = None
 
@@ -153,7 +166,12 @@ async def audit_logging_middleware(request: Request, call_next):
     except (json.JSONDecodeError, UnicodeDecodeError):
         pass
 
-    method_action_map = {"POST": "create", "PATCH": "update", "PUT": "update", "DELETE": "delete"}
+    method_action_map = {
+        "POST": "create",
+        "PATCH": "update",
+        "PUT": "update",
+        "DELETE": "delete",
+    }
     action = method_action_map.get(request.method, request.method.lower())
 
     path_parts = request.url.path.strip("/").split("/")
@@ -190,7 +208,7 @@ async def audit_logging_middleware(request: Request, call_next):
         )
         db.add(log_entry)
         db.commit()
-    except Exception:
+    except (OSError, RuntimeError):
         pass
     finally:
         db.close()

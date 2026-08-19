@@ -1,5 +1,16 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, JSON, ForeignKey, func
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import relationship
+
 from app.database import Base
 
 
@@ -16,7 +27,9 @@ class RecoveryPlan(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     disaster = relationship("Disaster")
-    procurement_items = relationship("RecoveryProcurement", back_populates="plan", cascade="all, delete-orphan")
+    procurement_items = relationship(
+        "RecoveryProcurement", back_populates="plan", cascade="all, delete-orphan"
+    )
 
 
 class RecoveryProcurement(Base):

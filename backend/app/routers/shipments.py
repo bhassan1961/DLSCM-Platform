@@ -1,20 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
-from pydantic import BaseModel, ConfigDict
-from typing import Optional, Any
-from datetime import datetime
-
 import uuid
+from datetime import datetime
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.models.shipment import Shipment, ShipmentLeg, ShipmentTrackingEvent
 from app.models.inventory import Warehouse
+from app.models.shipment import Shipment, ShipmentLeg, ShipmentTrackingEvent
 from app.services.customs import generate_customs_docs
 
 router = APIRouter(prefix="/api/v1/shipments", tags=["shipments"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────
+
 
 class ShipmentLegOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -29,9 +30,9 @@ class ShipmentLegOut(BaseModel):
     mode: str
     distance_km: float
     duration_hours: float
-    carrier: Optional[str] = None
-    from_location: Optional[str] = None
-    to_location: Optional[str] = None
+    carrier: str | None = None
+    from_location: str | None = None
+    to_location: str | None = None
 
 
 class TrackingEventOut(BaseModel):
@@ -40,12 +41,12 @@ class TrackingEventOut(BaseModel):
     id: int
     shipment_id: int
     event_type: str
-    location: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    description: Optional[str] = None
-    metadata: Optional[Any] = None
-    timestamp: Optional[datetime] = None
+    location: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    description: str | None = None
+    metadata: Any | None = None
+    timestamp: datetime | None = None
 
 
 class ShipmentOut(BaseModel):
@@ -57,16 +58,16 @@ class ShipmentOut(BaseModel):
     origin_warehouse_id: int
     status: str
     transport_mode: str
-    carrier: Optional[str] = None
-    current_lat: Optional[float] = None
-    current_lng: Optional[float] = None
-    eta: Optional[datetime] = None
-    departed_at: Optional[datetime] = None
-    delivered_at: Optional[datetime] = None
-    notes: Optional[str] = None
-    customs_status: Optional[str] = None
-    customs_docs: Optional[Any] = None
-    created_at: Optional[datetime] = None
+    carrier: str | None = None
+    current_lat: float | None = None
+    current_lng: float | None = None
+    eta: datetime | None = None
+    departed_at: datetime | None = None
+    delivered_at: datetime | None = None
+    notes: str | None = None
+    customs_status: str | None = None
+    customs_docs: Any | None = None
+    created_at: datetime | None = None
     legs: list[ShipmentLegOut] = []
     tracking_events: list[TrackingEventOut] = []
 
@@ -75,17 +76,17 @@ class ShipmentCreate(BaseModel):
     request_id: int
     origin_warehouse_id: int
     transport_mode: str
-    carrier: Optional[str] = None
-    eta: Optional[datetime] = None
-    notes: Optional[str] = None
+    carrier: str | None = None
+    eta: datetime | None = None
+    notes: str | None = None
 
 
 class MultiLegCreate(BaseModel):
     request_id: int
     origin_warehouse_id: int
     legs: list[dict]
-    carrier: Optional[str] = None
-    notes: Optional[str] = None
+    carrier: str | None = None
+    notes: str | None = None
 
 
 class ShipmentStatusUpdate(BaseModel):
@@ -94,10 +95,10 @@ class ShipmentStatusUpdate(BaseModel):
 
 class TrackingEventCreate(BaseModel):
     event_type: str
-    location: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    description: Optional[str] = None
+    location: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    description: str | None = None
 
 
 VALID_STATUSES = {"preparing", "in_transit", "delivered", "delayed", "customs_hold"}
@@ -113,6 +114,7 @@ def _load_shipment(db, shipment_id):
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────
+
 
 @router.get("", response_model=list[ShipmentOut])
 def list_shipments(db: Session = Depends(get_db)):
@@ -169,25 +171,27 @@ def create_multi_leg_shipment(req: MultiLegCreate, db: Session = Depends(get_db)
     db.flush()
 
     for i, leg in enumerate(req.legs):
-        db.add(ShipmentLeg(
-            shipment_id=s.id,
-            leg_order=i + 1,
-            from_lat=leg["from_lat"],
-            from_lng=leg["from_lng"],
-            to_lat=leg["to_lat"],
-            to_lng=leg["to_lng"],
-            mode=leg.get("mode", primary_mode),
-            distance_km=leg.get("distance_km", 0),
-            duration_hours=leg.get("duration_hours", 0),
-            carrier=leg.get("carrier"),
-            from_location=leg.get("from_location"),
-            to_location=leg.get("to_location"),
-        ))
+        db.add(
+            ShipmentLeg(
+                shipment_id=s.id,
+                leg_order=i + 1,
+                from_lat=leg["from_lat"],
+                from_lng=leg["from_lng"],
+                to_lat=leg["to_lat"],
+                to_lng=leg["to_lng"],
+                mode=leg.get("mode", primary_mode),
+                distance_km=leg.get("distance_km", 0),
+                duration_hours=leg.get("duration_hours", 0),
+                carrier=leg.get("carrier"),
+                from_location=leg.get("from_location"),
+                to_location=leg.get("to_location"),
+            )
+        )
 
     event = ShipmentTrackingEvent(
         shipment_id=s.id,
         event_type="created",
-        description=f"Multi-leg shipment created: {len(req.legs)} legs, modes: {', '.join(set(l.get('mode', primary_mode) for l in req.legs))}",
+        description=f"Multi-leg shipment created: {len(req.legs)} legs, modes: {', '.join({l.get('mode', primary_mode) for l in req.legs})}",
     )
     db.add(event)
     db.commit()
@@ -196,9 +200,13 @@ def create_multi_leg_shipment(req: MultiLegCreate, db: Session = Depends(get_db)
 
 
 @router.patch("/{shipment_id}/status", response_model=ShipmentOut)
-def update_shipment_status(shipment_id: int, update: ShipmentStatusUpdate, db: Session = Depends(get_db)):
+def update_shipment_status(
+    shipment_id: int, update: ShipmentStatusUpdate, db: Session = Depends(get_db)
+):
     if update.status not in VALID_STATUSES:
-        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {VALID_STATUSES}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid status. Must be one of: {VALID_STATUSES}"
+        )
     s = _load_shipment(db, shipment_id)
     if not s:
         raise HTTPException(status_code=404, detail="Shipment not found")
@@ -207,9 +215,11 @@ def update_shipment_status(shipment_id: int, update: ShipmentStatusUpdate, db: S
     s.status = update.status
     if update.status == "delivered":
         from datetime import datetime, timezone
+
         s.delivered_at = datetime.now(timezone.utc)
     elif update.status == "in_transit" and not s.departed_at:
         from datetime import datetime, timezone
+
         s.departed_at = datetime.now(timezone.utc)
 
     event = ShipmentTrackingEvent(
@@ -225,8 +235,12 @@ def update_shipment_status(shipment_id: int, update: ShipmentStatusUpdate, db: S
     return ShipmentOut.model_validate(_load_shipment(db, s.id))
 
 
-@router.post("/{shipment_id}/tracking", response_model=TrackingEventOut, status_code=201)
-def add_tracking_event(shipment_id: int, event: TrackingEventCreate, db: Session = Depends(get_db)):
+@router.post(
+    "/{shipment_id}/tracking", response_model=TrackingEventOut, status_code=201
+)
+def add_tracking_event(
+    shipment_id: int, event: TrackingEventCreate, db: Session = Depends(get_db)
+):
     s = db.query(Shipment).filter(Shipment.id == shipment_id).first()
     if not s:
         raise HTTPException(status_code=404, detail="Shipment not found")
@@ -265,11 +279,13 @@ def generate_shipment_customs_docs(shipment_id: int, db: Session = Depends(get_d
     if not warehouse:
         raise HTTPException(status_code=400, detail="Origin warehouse not found")
 
-    org = db.query(Warehouse).filter(Warehouse.id == warehouse.id).first()
+    db.query(Warehouse).filter(Warehouse.id == warehouse.id).first()
 
     docs = generate_customs_docs(
         shipment_tracking_id=s.tracking_id,
-        origin_country=warehouse.location.split(",")[-1].strip() if warehouse.location else "Unknown",
+        origin_country=warehouse.location.split(",")[-1].strip()
+        if warehouse.location
+        else "Unknown",
         destination_country="Destination",
         items=[],
         organization_name="DLSCM Operations",
@@ -296,4 +312,3 @@ def delete_shipment(shipment_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Shipment not found")
     db.delete(s)
     db.commit()
-    return None

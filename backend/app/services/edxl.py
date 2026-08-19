@@ -1,9 +1,8 @@
 """EDXL-DE and CAP message generation and parsing."""
 
-from datetime import datetime, timezone, timedelta
 import uuid
 import xml.etree.ElementTree as ET
-
+from datetime import datetime, timedelta, timezone
 
 CAP_NS = "urn:oasis:names:tc:emergency:cap:1.2"
 EDXL_NS = "urn:oasis:names:tc:emergency:EDXL:DE:2.0"
@@ -16,9 +15,9 @@ def generate_cap_alert(
     urgency: str = "Immediate",
     certainty: str = "Observed",
     event_type: str = "Met",
-    latitude: float = None,
-    longitude: float = None,
-    radius_km: float = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    radius_km: float | None = None,
     sender: str = "DLSCM Platform",
     expires_hours: int = 24,
 ) -> str:
@@ -26,7 +25,12 @@ def generate_cap_alert(
     now = datetime.now(timezone.utc)
     identifier = f"DLSCM-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
 
-    severity_map = {"minor": "Minor", "moderate": "Moderate", "severe": "Severe", "extreme": "Extreme"}
+    severity_map = {
+        "minor": "Minor",
+        "moderate": "Moderate",
+        "severe": "Severe",
+        "extreme": "Extreme",
+    }
     cap_severity = severity_map.get(severity.lower(), "Moderate")
 
     alert = ET.Element("alert", xmlns=CAP_NS)
@@ -46,11 +50,15 @@ def generate_cap_alert(
     ET.SubElement(info, "certainty").text = certainty
     ET.SubElement(info, "headline").text = title
     ET.SubElement(info, "description").text = description
-    ET.SubElement(info, "expires").text = (now + timedelta(hours=expires_hours)).isoformat()
+    ET.SubElement(info, "expires").text = (
+        now + timedelta(hours=expires_hours)
+    ).isoformat()
 
     if latitude is not None and longitude is not None:
         area = ET.SubElement(info, "area")
-        ET.SubElement(area, "areaDesc").text = f"Point at {latitude:.4f}, {longitude:.4f}"
+        ET.SubElement(
+            area, "areaDesc"
+        ).text = f"Point at {latitude:.4f}, {longitude:.4f}"
         circle_text = f"{latitude},{longitude} {radius_km or 50}"
         ET.SubElement(area, "circle").text = circle_text
 
@@ -61,12 +69,14 @@ def generate_edxl_de(
     content_xml: str,
     distribution_type: str = "Report",
     sender_id: str = "dlscm@platform.org",
-    keywords: list = None,
-    target_areas: list = None,
+    keywords: list | None = None,
+    target_areas: list | None = None,
 ) -> str:
     """Wrap content in an EDXL-DE 2.0 distribution envelope."""
     now = datetime.now(timezone.utc)
-    dist_id = f"DLSCM-EDXL-{now.strftime('%Y%m%dT%H%M%S')}-{uuid.uuid4().hex[:6].upper()}"
+    dist_id = (
+        f"DLSCM-EDXL-{now.strftime('%Y%m%dT%H%M%S')}-{uuid.uuid4().hex[:6].upper()}"
+    )
 
     root = ET.Element("EDXLDistribution", xmlns=EDXL_NS)
     ET.SubElement(root, "distributionID").text = dist_id
@@ -90,7 +100,9 @@ def generate_edxl_de(
                 ET.SubElement(ta, "country").text = area["country"]
 
     content_obj = ET.SubElement(root, "contentObject")
-    ET.SubElement(content_obj, "contentDescription").text = f"EDXL-DE wrapped content - {distribution_type}"
+    ET.SubElement(
+        content_obj, "contentDescription"
+    ).text = f"EDXL-DE wrapped content - {distribution_type}"
 
     xml_content = ET.SubElement(content_obj, "xmlContent")
     embedded = ET.SubElement(xml_content, "embeddedXMLContent")
@@ -109,7 +121,7 @@ def parse_edxl_message(xml_text: str) -> dict:
     try:
         root = ET.fromstring(xml_text)
     except ET.ParseError as e:
-        return {"error": f"Invalid XML: {str(e)}"}
+        return {"error": f"Invalid XML: {e!s}"}
 
     tag = root.tag.split("}")[-1] if "}" in root.tag else root.tag
 
@@ -118,7 +130,10 @@ def parse_edxl_message(xml_text: str) -> dict:
     elif tag == "EDXLDistribution":
         return _parse_edxl_de(root)
     else:
-        return {"error": f"Unknown root element: {tag}", "supported": ["alert (CAP)", "EDXLDistribution (EDXL-DE)"]}
+        return {
+            "error": f"Unknown root element: {tag}",
+            "supported": ["alert (CAP)", "EDXLDistribution (EDXL-DE)"],
+        }
 
 
 def _parse_cap(root) -> dict:

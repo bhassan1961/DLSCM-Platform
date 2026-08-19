@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, func
+from sqlalchemy import Column, DateTime, Float, Integer, String, Text
+
 from app.database import Base
 
 
@@ -15,5 +16,7 @@ class Alert(Base):
     longitude = Column(Float)
     issued_at = Column(DateTime, nullable=False)
     expires_at = Column(DateTime)
-    status = Column(String, nullable=False, default="active")  # active, acknowledged, expired
+    status = Column(
+        String, nullable=False, default="active"
+    )  # active, acknowledged, expired
     raw_message = Column(Text)

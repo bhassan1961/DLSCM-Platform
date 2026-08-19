@@ -1,6 +1,4 @@
 import random
-import math
-
 
 # Sector weight profiles by disaster type (sum to ~1.0 each)
 DISASTER_SECTOR_WEIGHTS = {
@@ -63,7 +61,9 @@ def assess_damage(disaster_type: str, severity: str) -> dict:
     Returns sector scores (0-100) and an overall damage index,
     weighted according to the disaster type.
     """
-    weights = DISASTER_SECTOR_WEIGHTS.get(disaster_type, DISASTER_SECTOR_WEIGHTS["flood"])
+    weights = DISASTER_SECTOR_WEIGHTS.get(
+        disaster_type, DISASTER_SECTOR_WEIGHTS["flood"]
+    )
     base_score = SEVERITY_BASE_SCORES.get(severity, 50)
 
     # Use a deterministic seed based on disaster_type + severity
@@ -80,9 +80,7 @@ def assess_damage(disaster_type: str, severity: str) -> dict:
         sector_scores[sector] = round(score, 1)
 
     # Overall index is weighted average
-    overall = sum(
-        sector_scores[s] * weights[s] for s in sector_scores
-    )
+    overall = sum(sector_scores[s] * weights[s] for s in sector_scores)
     overall_index = round(overall, 1)
 
     # Categorize overall damage
@@ -101,27 +99,41 @@ def assess_damage(disaster_type: str, severity: str) -> dict:
         "sector_scores": sector_scores,
         "overall_damage_index": overall_index,
         "damage_category": damage_category,
-        "assessment_notes": _generate_notes(disaster_type, sector_scores, damage_category),
+        "assessment_notes": _generate_notes(
+            disaster_type, sector_scores, damage_category
+        ),
     }
 
 
-def _generate_notes(disaster_type: str, sector_scores: dict, damage_category: str) -> list:
+def _generate_notes(
+    disaster_type: str, sector_scores: dict, damage_category: str
+) -> list:
     """Generate human-readable assessment notes based on scores."""
     notes = []
 
     highest_sector = max(sector_scores, key=sector_scores.get)
     lowest_sector = min(sector_scores, key=sector_scores.get)
 
-    notes.append(f"Most affected sector: {highest_sector} (score: {sector_scores[highest_sector]})")
-    notes.append(f"Least affected sector: {lowest_sector} (score: {sector_scores[lowest_sector]})")
+    notes.append(
+        f"Most affected sector: {highest_sector} (score: {sector_scores[highest_sector]})"
+    )
+    notes.append(
+        f"Least affected sector: {lowest_sector} (score: {sector_scores[lowest_sector]})"
+    )
 
     if sector_scores.get("health", 0) > 70:
-        notes.append("URGENT: Health infrastructure critically compromised. Immediate medical surge required.")
+        notes.append(
+            "URGENT: Health infrastructure critically compromised. Immediate medical surge required."
+        )
 
     if sector_scores.get("infrastructure", 0) > 60:
-        notes.append("WARNING: Significant infrastructure damage may impede logistics operations.")
+        notes.append(
+            "WARNING: Significant infrastructure damage may impede logistics operations."
+        )
 
     if sector_scores.get("agriculture", 0) > 60:
-        notes.append("Food security at risk due to agricultural damage. Long-term food assistance likely needed.")
+        notes.append(
+            "Food security at risk due to agricultural damage. Long-term food assistance likely needed."
+        )
 
     return notes

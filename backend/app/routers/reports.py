@@ -1,21 +1,22 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import func as sa_func
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
-from datetime import datetime, timedelta
+from sqlalchemy import func as sa_func
+from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.disaster import Disaster
-from app.models.supply_request import SupplyRequest, RequestItem
-from app.models.shipment import Shipment
 from app.models.coordination import ThreeWEntry
-from app.models.report import DonorReport, AfterActionReview
+from app.models.disaster import Disaster
+from app.models.report import AfterActionReview, DonorReport
+from app.models.shipment import Shipment
+from app.models.supply_request import SupplyRequest
 
 router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────
+
 
 class ReportGenerateRequest(BaseModel):
     disaster_id: int
@@ -29,10 +30,10 @@ class DonorReportOut(BaseModel):
     id: int
     disaster_id: int
     title: str
-    period_start: Optional[datetime] = None
-    period_end: Optional[datetime] = None
-    content: Optional[dict] = None
-    created_at: Optional[datetime] = None
+    period_start: datetime | None = None
+    period_end: datetime | None = None
+    content: dict | None = None
+    created_at: datetime | None = None
 
 
 class AfterActionReviewOut(BaseModel):
@@ -41,29 +42,30 @@ class AfterActionReviewOut(BaseModel):
     id: int
     disaster_id: int
     title: str
-    review_date: Optional[datetime] = None
-    response_time_hours: Optional[float] = None
-    cost_per_beneficiary: Optional[float] = None
-    stockout_events: Optional[int] = None
-    lessons_learned: Optional[str] = None
-    recommendations: Optional[str] = None
-    overall_score: Optional[float] = None
-    created_at: Optional[datetime] = None
+    review_date: datetime | None = None
+    response_time_hours: float | None = None
+    cost_per_beneficiary: float | None = None
+    stockout_events: int | None = None
+    lessons_learned: str | None = None
+    recommendations: str | None = None
+    overall_score: float | None = None
+    created_at: datetime | None = None
 
 
 class AfterActionReviewCreate(BaseModel):
     disaster_id: int
     title: str
     review_date: datetime
-    response_time_hours: Optional[float] = None
-    cost_per_beneficiary: Optional[float] = None
-    stockout_events: Optional[int] = None
-    lessons_learned: Optional[str] = None
-    recommendations: Optional[str] = None
-    overall_score: Optional[float] = None
+    response_time_hours: float | None = None
+    cost_per_beneficiary: float | None = None
+    stockout_events: int | None = None
+    lessons_learned: str | None = None
+    recommendations: str | None = None
+    overall_score: float | None = None
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────
+
 
 @router.post("/generate", response_model=DonorReportOut)
 def generate_donor_report(req: ReportGenerateRequest, db: Session = Depends(get_db)):
@@ -71,7 +73,7 @@ def generate_donor_report(req: ReportGenerateRequest, db: Session = Depends(get_
     if not disaster:
         raise HTTPException(status_code=404, detail="Disaster not found")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     period_start = now - timedelta(days=req.period_days)
     period_end = now
 
@@ -95,9 +97,7 @@ def generate_donor_report(req: ReportGenerateRequest, db: Session = Depends(get_
         .count()
     )
     threew_count = (
-        db.query(ThreeWEntry)
-        .filter(ThreeWEntry.disaster_id == req.disaster_id)
-        .count()
+        db.query(ThreeWEntry).filter(ThreeWEntry.disaster_id == req.disaster_id).count()
     )
     total_beneficiaries = (
         db.query(sa_func.coalesce(sa_func.sum(ThreeWEntry.beneficiaries), 0))
@@ -155,7 +155,7 @@ def generate_donor_report(req: ReportGenerateRequest, db: Session = Depends(get_
         content["template_title"] = "FCDO Annual Review"
         content["sections"] = {
             "summary_and_context": f"Response to {disaster.name} ({disaster.disaster_type}, {disaster.severity} severity) affecting {disaster.affected_population:,} people.",
-            "output_delivery": f"Total supply requests: {total_requests}. Fulfillment rate: {round(fulfilled_requests/max(total_requests,1)*100)}%. Active logistics operations: {active_shipments} shipments.",
+            "output_delivery": f"Total supply requests: {total_requests}. Fulfillment rate: {round(fulfilled_requests / max(total_requests, 1) * 100)}%. Active logistics operations: {active_shipments} shipments.",
             "outcome_assessment": f"Reached {total_beneficiaries:,} beneficiaries through {threew_count} coordination activities across partner organizations.",
             "vfm_assessment": "Value for Money assessment: Good. Cost efficiency metrics available in after-action review.",
             "risk_assessment": f"Current severity level: {disaster.severity}. Ongoing monitoring through DLSCM risk dashboard.",
@@ -176,7 +176,6 @@ def generate_donor_report(req: ReportGenerateRequest, db: Session = Depends(get_
     db.refresh(report)
 
     return DonorReportOut.model_validate(report)
-
 
 
 @router.get("", response_model=list[DonorReportOut])
@@ -200,7 +199,9 @@ def get_after_action_reviews(disaster_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/after-action", response_model=AfterActionReviewOut, status_code=201)
-def create_after_action_review(review: AfterActionReviewCreate, db: Session = Depends(get_db)):
+def create_after_action_review(
+    review: AfterActionReviewCreate, db: Session = Depends(get_db)
+):
     disaster = db.query(Disaster).filter(Disaster.id == review.disaster_id).first()
     if not disaster:
         raise HTTPException(status_code=404, detail="Disaster not found")

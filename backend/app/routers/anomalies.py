@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.models.inventory import Warehouse, Stock, Item
+from app.models.inventory import Item, Stock, Warehouse
 from app.models.shipment import Shipment
 from app.services.anomaly_detection import (
+    detect_consumption_drift,
     detect_inventory_anomalies,
     detect_shipment_anomalies,
-    detect_consumption_drift,
 )
 
 router = APIRouter(prefix="/api/v1/anomalies", tags=["anomalies"])
@@ -31,20 +32,22 @@ def get_inventory_anomalies(db: Session = Depends(get_db)):
         if updated:
             try:
                 days_since = (now - updated.replace(tzinfo=timezone.utc)).days
-            except Exception:
+            except (TypeError, ValueError):
                 days_since = 0
 
         min_req = max(10, stock.quantity // 2) if stock.quantity > 0 else 10
-        records.append({
-            "warehouse_id": warehouse.id,
-            "warehouse_name": warehouse.name,
-            "item_id": item.id,
-            "item_name": item.name,
-            "category": item.category,
-            "quantity": stock.quantity,
-            "min_required": min_req,
-            "days_since_update": days_since,
-        })
+        records.append(
+            {
+                "warehouse_id": warehouse.id,
+                "warehouse_name": warehouse.name,
+                "item_id": item.id,
+                "item_name": item.name,
+                "category": item.category,
+                "quantity": stock.quantity,
+                "min_required": min_req,
+                "days_since_update": days_since,
+            }
+        )
 
     return detect_inventory_anomalies(records)
 
@@ -63,7 +66,9 @@ def get_shipment_anomalies(db: Session = Depends(get_db)):
         if s.departed_at and s.delivered_at:
             actual_days = max(1, (s.delivered_at - s.departed_at).days)
         elif s.departed_at:
-            actual_days = max(1, (now - s.departed_at.replace(tzinfo=timezone.utc)).days)
+            actual_days = max(
+                1, (now - s.departed_at.replace(tzinfo=timezone.utc)).days
+            )
         else:
             actual_days = est_days
 
@@ -72,17 +77,19 @@ def get_shipment_anomalies(db: Session = Depends(get_db)):
         dest = s.request.destination_name if s.request else "Unknown"
         items_count = len(s.request.items) if s.request and s.request.items else 1
 
-        records.append({
-            "id": s.id,
-            "tracking_id": s.tracking_id,
-            "status": s.status,
-            "origin": origin_name,
-            "destination": dest,
-            "estimated_days": est_days,
-            "actual_days": actual_days,
-            "delay_days": delay,
-            "items_count": items_count,
-        })
+        records.append(
+            {
+                "id": s.id,
+                "tracking_id": s.tracking_id,
+                "status": s.status,
+                "origin": origin_name,
+                "destination": dest,
+                "estimated_days": est_days,
+                "actual_days": actual_days,
+                "delay_days": delay,
+                "items_count": items_count,
+            }
+        )
 
     return detect_shipment_anomalies(records)
 
@@ -104,8 +111,12 @@ def get_anomaly_summary(db: Session = Depends(get_db)):
     ship = get_shipment_anomalies(db)
     drift = get_consumption_drift(db)
 
-    inv_critical = sum(1 for a in inv.get("anomalies", []) if a.get("severity") == "critical")
-    ship_critical = sum(1 for a in ship.get("anomalies", []) if a.get("severity") == "critical")
+    inv_critical = sum(
+        1 for a in inv.get("anomalies", []) if a.get("severity") == "critical"
+    )
+    ship_critical = sum(
+        1 for a in ship.get("anomalies", []) if a.get("severity") == "critical"
+    )
 
     return {
         "inventory": {

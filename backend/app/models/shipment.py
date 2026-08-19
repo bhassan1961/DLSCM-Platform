@@ -1,5 +1,16 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, JSON, func
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import relationship
+
 from app.database import Base
 
 
@@ -19,14 +30,22 @@ class Shipment(Base):
     departed_at = Column(DateTime)
     delivered_at = Column(DateTime)
     notes = Column(Text)
-    customs_status = Column(String, default="not_required")  # not_required, pending, cleared, held
+    customs_status = Column(
+        String, default="not_required"
+    )  # not_required, pending, cleared, held
     customs_docs = Column(JSON, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
     request = relationship("SupplyRequest", back_populates="shipments")
     origin_warehouse = relationship("Warehouse", back_populates="shipments")
-    legs = relationship("ShipmentLeg", back_populates="shipment", order_by="ShipmentLeg.leg_order")
-    tracking_events = relationship("ShipmentTrackingEvent", back_populates="shipment", order_by="ShipmentTrackingEvent.timestamp")
+    legs = relationship(
+        "ShipmentLeg", back_populates="shipment", order_by="ShipmentLeg.leg_order"
+    )
+    tracking_events = relationship(
+        "ShipmentTrackingEvent",
+        back_populates="shipment",
+        order_by="ShipmentTrackingEvent.timestamp",
+    )
 
 
 class ShipmentLeg(Base):
@@ -54,7 +73,9 @@ class ShipmentTrackingEvent(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     shipment_id = Column(Integer, ForeignKey("shipments.id"), nullable=False)
-    event_type = Column(String, nullable=False)  # departure, arrival, customs_hold, customs_clear, delay, handoff, delivery
+    event_type = Column(
+        String, nullable=False
+    )  # departure, arrival, customs_hold, customs_clear, delay, handoff, delivery
     location = Column(String, nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)

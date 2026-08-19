@@ -1,12 +1,13 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.services.risk_model import calculate_risk, RISK_PROFILES
+from app.services.risk_model import RISK_PROFILES, calculate_risk
 
 router = APIRouter(prefix="/api/v1/risk", tags=["risk"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────
+
 
 class RiskRegion(BaseModel):
     region: str
@@ -25,6 +26,7 @@ class RiskMapResponse(BaseModel):
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────
+
 
 @router.get("/map", response_model=RiskMapResponse)
 def get_risk_map():

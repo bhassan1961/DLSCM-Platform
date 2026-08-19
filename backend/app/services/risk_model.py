@@ -7,6 +7,7 @@ Computes a composite risk score combining:
   - Infrastructure vulnerability (capacity to withstand/respond)
   - ML-based temporal risk adjustment
 """
+
 import numpy as np
 
 RISK_PROFILES = {
@@ -117,8 +118,20 @@ def _ml_risk_adjustment(profile: dict) -> dict:
     try:
         from sklearn.ensemble import RandomForestClassifier
 
-        hazard_types = ["drought", "flood", "cyclone", "earthquake", "conflict", "epidemic"]
-        severity_map = {"minor": 0.25, "moderate": 0.50, "major": 0.75, "catastrophic": 1.0}
+        hazard_types = [
+            "drought",
+            "flood",
+            "cyclone",
+            "earthquake",
+            "conflict",
+            "epidemic",
+        ]
+        severity_map = {
+            "minor": 0.25,
+            "moderate": 0.50,
+            "major": 0.75,
+            "catastrophic": 1.0,
+        }
 
         features = []
         for ht in hazard_types:
@@ -157,7 +170,9 @@ def _ml_risk_adjustment(profile: dict) -> dict:
 
         hazard_importances = {}
         for i, ht in enumerate(hazard_types):
-            hazard_importances[ht] = round(float(importances[i * 2] + importances[i * 2 + 1]), 3)
+            hazard_importances[ht] = round(
+                float(importances[i * 2] + importances[i * 2 + 1]), 3
+            )
 
         trend_probs = {"decreasing": 0.0, "stable": 0.0, "increasing": 0.0}
         for cls_idx, cls_label in enumerate(model.classes_):
@@ -178,7 +193,10 @@ def _ml_risk_adjustment(profile: dict) -> dict:
 def calculate_risk(region: str) -> dict:
     profile = RISK_PROFILES.get(region)
     if not profile:
-        return {"error": f"Unknown region: {region}", "available_regions": list(RISK_PROFILES.keys())}
+        return {
+            "error": f"Unknown region: {region}",
+            "available_regions": list(RISK_PROFILES.keys()),
+        }
 
     severity_weights = {
         "minor": 0.25,
@@ -228,7 +246,9 @@ def calculate_risk(region: str) -> dict:
         "components": {
             "hazard_score": round(normalized_hazard, 1),
             "population_exposure": round(profile["population_exposure"] * 100, 1),
-            "infrastructure_vulnerability": round(profile["infrastructure_vulnerability"] * 100, 1),
+            "infrastructure_vulnerability": round(
+                profile["infrastructure_vulnerability"] * 100, 1
+            ),
         },
         "hazard_breakdown": hazard_scores,
         "dominant_hazard": max(hazard_scores, key=hazard_scores.get),

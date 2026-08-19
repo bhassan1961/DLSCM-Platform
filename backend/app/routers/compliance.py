@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Any
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services.compliance import check_compliance
@@ -10,6 +9,7 @@ router = APIRouter(prefix="/api/v1/compliance", tags=["compliance"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────
+
 
 class SphereCheck(BaseModel):
     standard: str
@@ -40,6 +40,7 @@ class ComplianceResult(BaseModel):
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────
+
 
 @router.get("", response_model=ComplianceResult)
 def get_compliance(db: Session = Depends(get_db)):

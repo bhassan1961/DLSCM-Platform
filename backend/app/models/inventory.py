@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, func
 from sqlalchemy.orm import relationship
+
 from app.database import Base
 
 
@@ -25,7 +26,9 @@ class Item(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     sku = Column(String, unique=True, nullable=False)
-    category = Column(String, nullable=False)  # food, water, medical, shelter, hygiene, nfi
+    category = Column(
+        String, nullable=False
+    )  # food, water, medical, shelter, hygiene, nfi
     unit = Column(String, nullable=False)
     weight_kg = Column(Float, nullable=False)
     volume_m3 = Column(Float, nullable=False)

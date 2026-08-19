@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
 from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models.coordination import ThreeWEntry
@@ -12,23 +12,24 @@ router = APIRouter(prefix="/api/v1/coordination", tags=["coordination"])
 
 # ── Schemas ────────────────────────────────────────────────────────────
 
+
 class ThreeWOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     organization_id: int
-    organization_name: Optional[str] = None
+    organization_name: str | None = None
     disaster_id: int
     activity: str
     location: str
     latitude: float
     longitude: float
     beneficiaries: int
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
     status: str
-    notes: Optional[str] = None
-    created_at: Optional[datetime] = None
+    notes: str | None = None
+    created_at: datetime | None = None
 
 
 class ThreeWCreate(BaseModel):
@@ -39,33 +40,30 @@ class ThreeWCreate(BaseModel):
     latitude: float
     longitude: float
     beneficiaries: int
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
     status: str = "active"
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class ThreeWUpdate(BaseModel):
-    activity: Optional[str] = None
-    location: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    beneficiaries: Optional[int] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    status: Optional[str] = None
-    notes: Optional[str] = None
+    activity: str | None = None
+    location: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    beneficiaries: int | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    status: str | None = None
+    notes: str | None = None
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────
 
+
 @router.get("", response_model=list[ThreeWOut])
 def list_threew(db: Session = Depends(get_db)):
-    entries = (
-        db.query(ThreeWEntry)
-        .options(joinedload(ThreeWEntry.organization))
-        .all()
-    )
+    entries = db.query(ThreeWEntry).options(joinedload(ThreeWEntry.organization)).all()
     results = []
     for entry in entries:
         data = ThreeWOut.model_validate(entry)
@@ -112,4 +110,3 @@ def delete_threew(entry_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="3W entry not found")
     db.delete(e)
     db.commit()
-    return None

@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import Optional
 
 from app.services.sitrep_parser import parse_sitrep
 
@@ -9,6 +8,7 @@ router = APIRouter(prefix="/api/v1/sitrep", tags=["sitrep"])
 
 # ── Schemas ────────────────────────────────────────────────────────────
 
+
 class SitrepRequest(BaseModel):
     text: str
 
@@ -16,12 +16,13 @@ class SitrepRequest(BaseModel):
 class SitrepResponse(BaseModel):
     disaster_type: str
     identified_needs: list[str]
-    affected_population: Optional[int] = None
+    affected_population: int | None = None
     urgency: str
     summary: str
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────
+
 
 @router.post("/parse", response_model=SitrepResponse)
 def parse_sitrep_endpoint(req: SitrepRequest):

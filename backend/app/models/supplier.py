@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, Text, DateTime, func
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text, func
+
 from app.database import Base
 
 
@@ -7,7 +8,9 @@ class Supplier(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    category = Column(String, nullable=False)  # food, medical, shelter, logistics, water, nfi, general
+    category = Column(
+        String, nullable=False
+    )  # food, medical, shelter, logistics, water, nfi, general
     country = Column(String, nullable=False)
     contact_email = Column(String)
     lead_time_days = Column(Integer)

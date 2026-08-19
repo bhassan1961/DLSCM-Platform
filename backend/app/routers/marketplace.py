@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
-from datetime import datetime, timezone
 import math
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.marketplace import SurgeCapacityListing
 from app.models.booking import MarketplaceBooking
+from app.models.marketplace import SurgeCapacityListing
 
 router = APIRouter(prefix="/api/v1/marketplace", tags=["marketplace"])
 
@@ -19,22 +19,22 @@ class SurgeListingOut(BaseModel):
     organization_id: int
     listing_type: str
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     capacity_value: float
     capacity_unit: str
     location: str
     latitude: float
     longitude: float
-    available_from: Optional[datetime] = None
-    available_until: Optional[datetime] = None
+    available_from: datetime | None = None
+    available_until: datetime | None = None
     status: str
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
 
 
 class BookingCreate(BaseModel):
     requester_org: str
     quantity_needed: float
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class BookingOut(BaseModel):
@@ -44,9 +44,9 @@ class BookingOut(BaseModel):
     listing_id: int
     requester_org: str
     quantity_needed: float
-    notes: Optional[str] = None
+    notes: str | None = None
     status: str
-    booked_at: Optional[datetime] = None
+    booked_at: datetime | None = None
 
 
 @router.get("", response_model=list[SurgeListingOut])
@@ -57,14 +57,22 @@ def list_surge_capacity(db: Session = Depends(get_db)):
 
 @router.post("/{listing_id}/match")
 def match_listing(listing_id: int, db: Session = Depends(get_db)):
-    listing = db.query(SurgeCapacityListing).filter(SurgeCapacityListing.id == listing_id).first()
+    listing = (
+        db.query(SurgeCapacityListing)
+        .filter(SurgeCapacityListing.id == listing_id)
+        .first()
+    )
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
 
-    all_listings = db.query(SurgeCapacityListing).filter(
-        SurgeCapacityListing.id != listing_id,
-        SurgeCapacityListing.status == "available",
-    ).all()
+    all_listings = (
+        db.query(SurgeCapacityListing)
+        .filter(
+            SurgeCapacityListing.id != listing_id,
+            SurgeCapacityListing.status == "available",
+        )
+        .all()
+    )
 
     def _score(other):
         type_match = 1.0 if other.listing_type == listing.listing_type else 0.3
@@ -72,7 +80,9 @@ def match_listing(listing_id: int, db: Session = Depends(get_db)):
         dlng = abs(other.longitude - listing.longitude)
         dist = math.sqrt(dlat**2 + dlng**2)
         proximity = max(0, 1 - dist / 50)
-        capacity_ratio = min(other.capacity_value, listing.capacity_value) / max(other.capacity_value, listing.capacity_value, 1)
+        capacity_ratio = min(other.capacity_value, listing.capacity_value) / max(
+            other.capacity_value, listing.capacity_value, 1
+        )
         return round(type_match * 0.3 + proximity * 0.4 + capacity_ratio * 0.3, 3)
 
     scored = [(l, _score(l)) for l in all_listings]
@@ -97,11 +107,17 @@ def match_listing(listing_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{listing_id}/book")
 def book_listing(listing_id: int, req: BookingCreate, db: Session = Depends(get_db)):
-    listing = db.query(SurgeCapacityListing).filter(SurgeCapacityListing.id == listing_id).first()
+    listing = (
+        db.query(SurgeCapacityListing)
+        .filter(SurgeCapacityListing.id == listing_id)
+        .first()
+    )
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     if listing.status != "available":
-        raise HTTPException(status_code=400, detail="Listing is not available for booking")
+        raise HTTPException(
+            status_code=400, detail="Listing is not available for booking"
+        )
 
     listing.status = "reserved"
 
@@ -135,31 +151,43 @@ def list_bookings(db: Session = Depends(get_db)):
     bookings = db.query(MarketplaceBooking).all()
     results = []
     for b in bookings:
-        listing = db.query(SurgeCapacityListing).filter(SurgeCapacityListing.id == b.listing_id).first()
-        results.append({
-            "id": b.id,
-            "listing_id": b.listing_id,
-            "listing_title": listing.title if listing else None,
-            "listing_type": listing.listing_type if listing else None,
-            "location": listing.location if listing else None,
-            "requester_org": b.requester_org,
-            "quantity_needed": b.quantity_needed,
-            "notes": b.notes,
-            "status": b.status,
-            "booked_at": b.booked_at.isoformat() if b.booked_at else None,
-        })
+        listing = (
+            db.query(SurgeCapacityListing)
+            .filter(SurgeCapacityListing.id == b.listing_id)
+            .first()
+        )
+        results.append(
+            {
+                "id": b.id,
+                "listing_id": b.listing_id,
+                "listing_title": listing.title if listing else None,
+                "listing_type": listing.listing_type if listing else None,
+                "location": listing.location if listing else None,
+                "requester_org": b.requester_org,
+                "quantity_needed": b.quantity_needed,
+                "notes": b.notes,
+                "status": b.status,
+                "booked_at": b.booked_at.isoformat() if b.booked_at else None,
+            }
+        )
     return results
 
 
 @router.patch("/bookings/{booking_id}/cancel")
 def cancel_booking(booking_id: int, db: Session = Depends(get_db)):
-    booking = db.query(MarketplaceBooking).filter(MarketplaceBooking.id == booking_id).first()
+    booking = (
+        db.query(MarketplaceBooking).filter(MarketplaceBooking.id == booking_id).first()
+    )
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
     booking.status = "cancelled"
 
-    listing = db.query(SurgeCapacityListing).filter(SurgeCapacityListing.id == booking.listing_id).first()
+    listing = (
+        db.query(SurgeCapacityListing)
+        .filter(SurgeCapacityListing.id == booking.listing_id)
+        .first()
+    )
     if listing:
         listing.status = "available"
 

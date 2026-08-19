@@ -1,21 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
 from datetime import datetime
 
-from app.database import get_db
-from app.models.user import User, Organization
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Session, joinedload
+
 from app.auth import (
-    hash_password, verify_password,
-    create_access_token, create_refresh_token, decode_token,
-    get_current_user, require_auth,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    require_auth,
+    verify_password,
 )
+from app.database import get_db
+from app.models.user import Organization, User
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────
+
 
 class OrganizationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -35,13 +39,13 @@ class UserOut(BaseModel):
     role: str
     organization_id: int
     is_active: bool
-    created_at: Optional[datetime] = None
-    organization: Optional[OrganizationOut] = None
+    created_at: datetime | None = None
+    organization: OrganizationOut | None = None
 
 
 class LoginRequest(BaseModel):
     email: str
-    password: Optional[str] = None
+    password: str | None = None
 
 
 class RegisterRequest(BaseModel):
@@ -70,6 +74,7 @@ class ChangePasswordRequest(BaseModel):
 
 # ── Endpoints ──────────────────────────────────────────────────────────
 
+
 @router.post("/login", response_model=TokenResponse)
 def login(req: LoginRequest, db: Session = Depends(get_db)):
     user = (
@@ -83,9 +88,10 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User account is inactive")
 
-    if user.password_hash:
-        if not req.password or not verify_password(req.password, user.password_hash):
-            raise HTTPException(status_code=401, detail="Invalid email or password")
+    if user.password_hash and (
+        not req.password or not verify_password(req.password, user.password_hash)
+    ):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     # else: demo user without password — allow login for backward compatibility
 
     token_data = {"sub": user.email, "role": user.role, "org_id": user.organization_id}
@@ -120,7 +126,12 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    user = db.query(User).options(joinedload(User.organization)).filter(User.id == user.id).first()
+    user = (
+        db.query(User)
+        .options(joinedload(User.organization))
+        .filter(User.id == user.id)
+        .first()
+    )
     token_data = {"sub": user.email, "role": user.role, "org_id": user.organization_id}
 
     return TokenResponse(
@@ -137,7 +148,12 @@ def refresh_token(req: RefreshRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     email = payload.get("sub")
-    user = db.query(User).options(joinedload(User.organization)).filter(User.email == email).first()
+    user = (
+        db.query(User)
+        .options(joinedload(User.organization))
+        .filter(User.email == email)
+        .first()
+    )
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
 
@@ -155,8 +171,14 @@ def get_me(user: User = Depends(require_auth)):
 
 
 @router.post("/change-password")
-def change_password(req: ChangePasswordRequest, user: User = Depends(require_auth), db: Session = Depends(get_db)):
-    if user.password_hash and not verify_password(req.current_password, user.password_hash):
+def change_password(
+    req: ChangePasswordRequest,
+    user: User = Depends(require_auth),
+    db: Session = Depends(get_db),
+):
+    if user.password_hash and not verify_password(
+        req.current_password, user.password_hash
+    ):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     user.password_hash = hash_password(req.new_password)
     db.commit()
@@ -165,9 +187,5 @@ def change_password(req: ChangePasswordRequest, user: User = Depends(require_aut
 
 @router.get("/users", response_model=list[UserOut])
 def list_users(db: Session = Depends(get_db)):
-    users = (
-        db.query(User)
-        .options(joinedload(User.organization))
-        .all()
-    )
+    users = db.query(User).options(joinedload(User.organization)).all()
     return [UserOut.model_validate(u) for u in users]

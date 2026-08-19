@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.alert import Alert
@@ -17,16 +16,16 @@ class CAPGenerateRequest(BaseModel):
     urgency: str = "Immediate"
     certainty: str = "Observed"
     event_type: str = "Met"
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    radius_km: Optional[float] = 50.0
+    latitude: float | None = None
+    longitude: float | None = None
+    radius_km: float | None = 50.0
     expires_hours: int = 24
 
 
 class EDXLWrapRequest(BaseModel):
     content_xml: str
     distribution_type: str = "Report"
-    keywords: Optional[list[str]] = None
+    keywords: list[str] | None = None
 
 
 @router.post("/cap/generate")
@@ -64,7 +63,9 @@ def wrap_alert_in_edxl(alert_id: int, db: Session = Depends(get_db)):
         content_xml=cap_xml,
         distribution_type="Alert",
         keywords=[alert.alert_type, alert.severity],
-        target_areas=[{"circle": f"{alert.latitude},{alert.longitude} 50"}] if alert.latitude else None,
+        target_areas=[{"circle": f"{alert.latitude},{alert.longitude} 50"}]
+        if alert.latitude
+        else None,
     )
 
     return {

@@ -1,20 +1,74 @@
 from datetime import datetime, timezone
 
 HUMANITARIAN_EXEMPTIONS = {
-    "KE": {"name": "Kenya", "exemption": True, "notes": "VAT exempt under Humanitarian Aid Act 2017", "required_docs": ["waybill", "donation_certificate"]},
-    "BD": {"name": "Bangladesh", "exemption": True, "notes": "Duty-free under NGOAB registration", "required_docs": ["waybill", "ngoab_clearance", "packing_list"]},
-    "SY": {"name": "Syria", "exemption": True, "notes": "Cross-border via UN Resolution 2585 mechanism", "required_docs": ["un_authorization", "waybill", "manifest"]},
-    "JO": {"name": "Jordan", "exemption": True, "notes": "Exempt under framework agreement with MoPIC", "required_docs": ["waybill", "mopic_letter"]},
-    "MZ": {"name": "Mozambique", "exemption": True, "notes": "Emergency exemption granted during cyclone response", "required_docs": ["waybill", "ingc_authorization"]},
-    "ET": {"name": "Ethiopia", "exemption": True, "notes": "NGO imports exempt under Charities Proclamation", "required_docs": ["waybill", "charity_registration"]},
-    "AE": {"name": "UAE", "exemption": False, "notes": "Standard customs procedures apply. IHC free zone available.", "required_docs": ["commercial_invoice", "waybill", "packing_list", "certificate_of_origin"]},
-    "DE": {"name": "Germany", "exemption": False, "notes": "EU customs procedures. ATA Carnet available for temporary imports.", "required_docs": ["commercial_invoice", "waybill", "eur1_certificate"]},
+    "KE": {
+        "name": "Kenya",
+        "exemption": True,
+        "notes": "VAT exempt under Humanitarian Aid Act 2017",
+        "required_docs": ["waybill", "donation_certificate"],
+    },
+    "BD": {
+        "name": "Bangladesh",
+        "exemption": True,
+        "notes": "Duty-free under NGOAB registration",
+        "required_docs": ["waybill", "ngoab_clearance", "packing_list"],
+    },
+    "SY": {
+        "name": "Syria",
+        "exemption": True,
+        "notes": "Cross-border via UN Resolution 2585 mechanism",
+        "required_docs": ["un_authorization", "waybill", "manifest"],
+    },
+    "JO": {
+        "name": "Jordan",
+        "exemption": True,
+        "notes": "Exempt under framework agreement with MoPIC",
+        "required_docs": ["waybill", "mopic_letter"],
+    },
+    "MZ": {
+        "name": "Mozambique",
+        "exemption": True,
+        "notes": "Emergency exemption granted during cyclone response",
+        "required_docs": ["waybill", "ingc_authorization"],
+    },
+    "ET": {
+        "name": "Ethiopia",
+        "exemption": True,
+        "notes": "NGO imports exempt under Charities Proclamation",
+        "required_docs": ["waybill", "charity_registration"],
+    },
+    "AE": {
+        "name": "UAE",
+        "exemption": False,
+        "notes": "Standard customs procedures apply. IHC free zone available.",
+        "required_docs": [
+            "commercial_invoice",
+            "waybill",
+            "packing_list",
+            "certificate_of_origin",
+        ],
+    },
+    "DE": {
+        "name": "Germany",
+        "exemption": False,
+        "notes": "EU customs procedures. ATA Carnet available for temporary imports.",
+        "required_docs": ["commercial_invoice", "waybill", "eur1_certificate"],
+    },
 }
 
 COUNTRY_CODE_MAP = {
-    "kenya": "KE", "bangladesh": "BD", "syria": "SY", "jordan": "JO",
-    "mozambique": "MZ", "ethiopia": "ET", "uae": "AE", "germany": "DE",
-    "switzerland": "CH", "belgium": "BE", "italy": "IT", "china": "CN",
+    "kenya": "KE",
+    "bangladesh": "BD",
+    "syria": "SY",
+    "jordan": "JO",
+    "mozambique": "MZ",
+    "ethiopia": "ET",
+    "uae": "AE",
+    "germany": "DE",
+    "switzerland": "CH",
+    "belgium": "BE",
+    "italy": "IT",
+    "china": "CN",
 }
 
 
@@ -80,8 +134,12 @@ def generate_customs_docs(
         "origin_country": {"code": origin_code, "name": origin_country},
         "destination_country": {"code": dest_code, "name": destination_country},
         "exemption_available": exemption_info.get("exemption", False),
-        "exemption_notes": exemption_info.get("notes", "No specific exemption data available"),
-        "required_documents": exemption_info.get("required_docs", ["waybill", "packing_list"]),
+        "exemption_notes": exemption_info.get(
+            "notes", "No specific exemption data available"
+        ),
+        "required_documents": exemption_info.get(
+            "required_docs", ["waybill", "packing_list"]
+        ),
         "generated_documents": {
             "waybill": waybill,
             "packing_list": packing_list,

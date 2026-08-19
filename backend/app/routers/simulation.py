@@ -1,18 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
 from datetime import datetime
+
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.simulation import Scenario
-from app.services.forecasting import forecast_demand
 from app.services.damage_assessment import assess_damage
+from app.services.forecasting import forecast_demand
 
 router = APIRouter(prefix="/api/v1/simulation", tags=["simulation"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────
+
 
 class ScenarioOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -25,10 +26,10 @@ class ScenarioOut(BaseModel):
     latitude: float
     longitude: float
     affected_population: int
-    parameters: Optional[dict] = None
-    results: Optional[dict] = None
+    parameters: dict | None = None
+    results: dict | None = None
     status: str
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
 
 
 class ScenarioCreate(BaseModel):
@@ -39,7 +40,7 @@ class ScenarioCreate(BaseModel):
     latitude: float
     longitude: float
     affected_population: int
-    parameters: Optional[dict] = None
+    parameters: dict | None = None
 
 
 class SimulationRunRequest(BaseModel):
@@ -60,6 +61,7 @@ class SimulationResult(BaseModel):
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────
+
 
 @router.post("/run", response_model=SimulationResult)
 def run_simulation(req: SimulationRunRequest, db: Session = Depends(get_db)):
@@ -100,7 +102,12 @@ def run_simulation(req: SimulationRunRequest, db: Session = Depends(get_db)):
         "note": "Includes 20% buffer above forecast demand",
     }
 
-    severity_speed_factor = {"minor": 1.0, "moderate": 1.3, "major": 1.8, "catastrophic": 2.5}
+    severity_speed_factor = {
+        "minor": 1.0,
+        "moderate": 1.3,
+        "major": 1.8,
+        "catastrophic": 2.5,
+    }
     base_hours = 24 * severity_speed_factor.get(req.severity, 1.5)
     nearest_km = 350 * severity_speed_factor.get(req.severity, 1.5)
     readiness = max(0, 100 - damage.get("overall_damage_index", 50) * 0.8)

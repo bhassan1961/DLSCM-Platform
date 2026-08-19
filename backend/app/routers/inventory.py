@@ -1,17 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session, joinedload
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
 from datetime import datetime
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Session, joinedload
+
 from app.database import get_db
-from app.models.inventory import Warehouse, Item, Stock
-from app.models.user import Organization
+from app.models.inventory import Item, Stock, Warehouse
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────
+
 
 class ItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -32,17 +32,16 @@ class StockOut(BaseModel):
     warehouse_id: int
     item_id: int
     quantity: int
-    lot_number: Optional[str] = None
-    expiry_date: Optional[datetime] = None
-    last_updated: Optional[datetime] = None
-    item: Optional[ItemOut] = None
+    lot_number: str | None = None
+    expiry_date: datetime | None = None
+    last_updated: datetime | None = None
+    item: ItemOut | None = None
 
 
 class StockUpdate(BaseModel):
-    quantity: Optional[int] = None
-    lot_number: Optional[str] = None
-    expiry_date: Optional[datetime] = None
-
+    quantity: int | None = None
+    lot_number: str | None = None
+    expiry_date: datetime | None = None
 
 
 class ItemCreate(BaseModel):
@@ -52,6 +51,7 @@ class ItemCreate(BaseModel):
     unit: str
     weight_kg: float
     volume_m3: float
+
 
 class WarehouseOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -68,14 +68,19 @@ class WarehouseOut(BaseModel):
 
 # ── Endpoints ──────────────────────────────────────────────────────────
 
+
 @router.get("/warehouses", response_model=list[WarehouseOut])
 def list_warehouses(db: Session = Depends(get_db)):
     warehouses = db.query(Warehouse).options(joinedload(Warehouse.stocks)).all()
     return [
         WarehouseOut(
-            id=w.id, name=w.name, location=w.location,
-            latitude=w.latitude, longitude=w.longitude,
-            capacity_m3=w.capacity_m3, organization_id=w.organization_id,
+            id=w.id,
+            name=w.name,
+            location=w.location,
+            latitude=w.latitude,
+            longitude=w.longitude,
+            capacity_m3=w.capacity_m3,
+            organization_id=w.organization_id,
             stock_count=len(w.stocks),
         )
         for w in warehouses
@@ -125,7 +130,7 @@ def list_items(db: Session = Depends(get_db)):
 
 @router.get("/stock", response_model=list[StockOut])
 def list_all_stock(
-    category: Optional[str] = Query(None, description="Filter by item category"),
+    category: str | None = Query(None, description="Filter by item category"),
     db: Session = Depends(get_db),
 ):
     query = db.query(Stock).options(joinedload(Stock.item))
@@ -140,24 +145,31 @@ def cross_org_stock(db: Session = Depends(get_db)):
     """Aggregated stock view across all organizations."""
     warehouses = (
         db.query(Warehouse)
-        .options(joinedload(Warehouse.stocks).joinedload(Stock.item), joinedload(Warehouse.organization))
+        .options(
+            joinedload(Warehouse.stocks).joinedload(Stock.item),
+            joinedload(Warehouse.organization),
+        )
         .all()
     )
     result = []
     for w in warehouses:
         for s in w.stocks:
-            result.append({
-                "organization": w.organization.name if w.organization else "Unknown",
-                "warehouse": w.name,
-                "warehouse_location": w.location,
-                "item_name": s.item.name if s.item else "Unknown",
-                "category": s.item.category if s.item else "",
-                "sku": s.item.sku if s.item else "",
-                "quantity": s.quantity,
-                "unit": s.item.unit if s.item else "",
-                "lot_number": s.lot_number,
-                "expiry_date": s.expiry_date.isoformat() if s.expiry_date else None,
-            })
+            result.append(
+                {
+                    "organization": w.organization.name
+                    if w.organization
+                    else "Unknown",
+                    "warehouse": w.name,
+                    "warehouse_location": w.location,
+                    "item_name": s.item.name if s.item else "Unknown",
+                    "category": s.item.category if s.item else "",
+                    "sku": s.item.sku if s.item else "",
+                    "quantity": s.quantity,
+                    "unit": s.item.unit if s.item else "",
+                    "lot_number": s.lot_number,
+                    "expiry_date": s.expiry_date.isoformat() if s.expiry_date else None,
+                }
+            )
     return result
 
 
@@ -180,4 +192,3 @@ def delete_item(item_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Item not found")
     db.delete(i)
     db.commit()
-    return None

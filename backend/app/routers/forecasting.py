@@ -1,31 +1,31 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.disaster import Disaster
 from app.models.supplier import Supplier
-from app.services.forecasting import forecast_demand
-from app.services.risk_model import calculate_risk, RISK_PROFILES
 from app.services.disruption import predict_disruptions
+from app.services.forecasting import forecast_demand
+from app.services.risk_model import RISK_PROFILES, calculate_risk
 
 router = APIRouter(prefix="/api/v1/forecasting", tags=["forecasting"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────
 
+
 class CategoryForecast(BaseModel):
     total: float
     daily: list[float]
     unit: str
     description: str
-    confidence_lower: Optional[list[float]] = None
-    confidence_upper: Optional[list[float]] = None
-    model: Optional[str] = None
-    decomposition: Optional[dict] = None
-    feature_importances: Optional[dict] = None
-    cross_model_inputs: Optional[dict] = None
+    confidence_lower: list[float] | None = None
+    confidence_upper: list[float] | None = None
+    model: str | None = None
+    decomposition: dict | None = None
+    feature_importances: dict | None = None
+    cross_model_inputs: dict | None = None
 
 
 class ForecastResponse(BaseModel):
@@ -36,7 +36,7 @@ class ForecastResponse(BaseModel):
     affected_population: int
     days_ahead: int
     forecasts: dict[str, CategoryForecast]
-    cross_model_context: Optional[dict] = None
+    cross_model_context: dict | None = None
 
 
 def _get_risk_context(disaster_region: str) -> dict:
@@ -79,6 +79,7 @@ def _get_disruption_context(db: Session) -> dict:
 
 # ── Endpoints ──────────────────────────────────────────────────────────
 
+
 @router.get("/{disaster_id}")
 def get_forecast(
     disaster_id: int,
@@ -118,9 +119,12 @@ def get_forecast(
             "supplier_disruption_summary": {
                 "total_suppliers": len(disruption_ctx.get("suppliers", [])),
                 "high_risk_suppliers": sum(
-                    1 for s in disruption_ctx.get("suppliers", [])
+                    1
+                    for s in disruption_ctx.get("suppliers", [])
                     if s.get("risk_level") in ("critical", "high")
                 ),
-            } if disruption_ctx else None,
+            }
+            if disruption_ctx
+            else None,
         },
     }

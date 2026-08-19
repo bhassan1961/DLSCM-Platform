@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, func
+from sqlalchemy import JSON, Column, DateTime, Float, Integer, String, func
+
 from app.database import Base
 
 
@@ -15,5 +16,7 @@ class Scenario(Base):
     affected_population = Column(Integer, nullable=False)
     parameters = Column(JSON)
     results = Column(JSON)
-    status = Column(String, nullable=False, default="draft")  # draft, running, completed
+    status = Column(
+        String, nullable=False, default="draft"
+    )  # draft, running, completed
     created_at = Column(DateTime, server_default=func.now())

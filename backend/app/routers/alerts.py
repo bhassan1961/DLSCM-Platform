@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
 from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.alert import Alert
@@ -12,6 +12,7 @@ router = APIRouter(prefix="/api/v1/alerts", tags=["alerts"])
 
 # ── Schemas ────────────────────────────────────────────────────────────
 
+
 class AlertOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -20,15 +21,15 @@ class AlertOut(BaseModel):
     alert_type: str
     severity: str
     title: str
-    description: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    issued_at: Optional[datetime] = None
-    expires_at: Optional[datetime] = None
+    description: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    issued_at: datetime | None = None
+    expires_at: datetime | None = None
     status: str
-    raw_message: Optional[str] = None
+    raw_message: str | None = None
     acknowledged: bool = False
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
 
 
 def _alert_to_dict(a: Alert) -> dict:
@@ -40,8 +41,9 @@ def _alert_to_dict(a: Alert) -> dict:
 
 # ── Endpoints ──────────────────────────────────────────────────────────
 
+
 @router.get("")
-def list_alerts(severity: Optional[str] = None, db: Session = Depends(get_db)):
+def list_alerts(severity: str | None = None, db: Session = Depends(get_db)):
     query = db.query(Alert)
     if severity:
         query = query.filter(Alert.severity == severity)

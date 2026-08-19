@@ -1,8 +1,10 @@
 import time
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response, JSONResponse
-from app.logging_config import get_logger, request_id_var, generate_request_id
+from starlette.responses import JSONResponse
+
+from app.logging_config import generate_request_id, get_logger, request_id_var
 
 logger = get_logger("security")
 
@@ -37,7 +39,10 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             if request.url.path.startswith("/api/"):
                 logger.info(
                     "%s %s %s %.0fms",
-                    request.method, request.url.path, response.status_code, duration,
+                    request.method,
+                    request.url.path,
+                    response.status_code,
+                    duration,
                     extra={
                         "method": request.method,
                         "path": str(request.url.path),
@@ -46,11 +51,17 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     },
                 )
             return response
-        except Exception as exc:
+        except Exception:
             duration = (time.perf_counter() - start) * 1000
             logger.exception(
-                "Unhandled error: %s %s", request.method, request.url.path,
-                extra={"method": request.method, "path": str(request.url.path), "duration_ms": round(duration, 1)},
+                "Unhandled error: %s %s",
+                request.method,
+                request.url.path,
+                extra={
+                    "method": request.method,
+                    "path": str(request.url.path),
+                    "duration_ms": round(duration, 1),
+                },
             )
             return JSONResponse(
                 status_code=500,
@@ -86,5 +97,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         bucket.append(now)
         response = await call_next(request)
         response.headers["X-RateLimit-Limit"] = str(RATE_LIMIT)
-        response.headers["X-RateLimit-Remaining"] = str(max(0, RATE_LIMIT - len(bucket)))
+        response.headers["X-RateLimit-Remaining"] = str(
+            max(0, RATE_LIMIT - len(bucket))
+        )
         return response

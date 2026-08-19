@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime, timezone
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.disaster import Disaster
@@ -14,14 +12,14 @@ router = APIRouter(prefix="/api/v1/recovery", tags=["recovery"])
 class RecoveryPlanCreate(BaseModel):
     disaster_id: int
     title: str
-    description: Optional[str] = None
-    target_completion: Optional[str] = None
+    description: str | None = None
+    target_completion: str | None = None
 
 
 class PhaseUpdate(BaseModel):
     phase: str
     status: str
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class ProcurementCreate(BaseModel):
@@ -29,7 +27,7 @@ class ProcurementCreate(BaseModel):
     category: str
     quantity: int
     unit_cost: float
-    supplier: Optional[str] = None
+    supplier: str | None = None
     status: str = "planned"
 
 
@@ -71,7 +69,7 @@ def _plan_to_dict(plan: RecoveryPlan) -> dict:
 
 
 @router.get("/plans")
-def list_plans(disaster_id: Optional[int] = None, db: Session = Depends(get_db)):
+def list_plans(disaster_id: int | None = None, db: Session = Depends(get_db)):
     query = db.query(RecoveryPlan)
     if disaster_id:
         query = query.filter(RecoveryPlan.disaster_id == disaster_id)
@@ -84,7 +82,9 @@ def create_plan(req: RecoveryPlanCreate, db: Session = Depends(get_db)):
     if not disaster:
         raise HTTPException(status_code=404, detail="Disaster not found")
 
-    phases = {p["phase"]: {"status": "pending", "notes": None} for p in LIFECYCLE_PHASES}
+    phases = {
+        p["phase"]: {"status": "pending", "notes": None} for p in LIFECYCLE_PHASES
+    }
     phases["assessment"]["status"] = "in_progress"
 
     plan = RecoveryPlan(
@@ -152,7 +152,9 @@ def list_procurement(plan_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/plans/{plan_id}/procurement")
-def add_procurement(plan_id: int, req: ProcurementCreate, db: Session = Depends(get_db)):
+def add_procurement(
+    plan_id: int, req: ProcurementCreate, db: Session = Depends(get_db)
+):
     plan = db.query(RecoveryPlan).filter(RecoveryPlan.id == plan_id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Recovery plan not found")
