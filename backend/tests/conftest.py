@@ -20,6 +20,7 @@ import app.seed
 app.database.engine = test_engine
 app.database.SessionLocal = TestSession
 app.main.engine = test_engine
+app.main.SessionLocal = TestSession
 app.seed.engine = test_engine
 app.seed.SessionLocal = TestSession
 

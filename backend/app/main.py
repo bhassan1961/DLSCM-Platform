@@ -208,8 +208,8 @@ async def audit_logging_middleware(request: Request, call_next):
         )
         db.add(log_entry)
         db.commit()
-    except (OSError, RuntimeError):
-        pass
+    except Exception:
+        logger.debug("Audit log write failed", exc_info=True)
     finally:
         db.close()
 
