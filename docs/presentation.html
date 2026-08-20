@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>DLSCM Platform</title>
+<style>
+:root {
+  --ground: #0C1222;
+  --surface: #162032;
+  --surface-raised: #1E2A3F;
+  --border: #2A3A52;
+  --accent: #3B82F6;
+  --accent-light: #60A5FA;
+  --amber: #F59E0B;
+  --amber-light: #FBBF24;
+  --red: #EF4444;
+  --green: #10B981;
+  --green-light: #34D399;
+  --text: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --gradient-blue: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+  --gradient-amber: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  --gradient-green: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  --gradient-red: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --font-display: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --ground: #F8FAFC;
+    --surface: #FFFFFF;
+    --surface-raised: #F1F5F9;
+    --border: #E2E8F0;
+    --text: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0C1222;
+  --surface: #162032;
+  --surface-raised: #1E2A3F;
+  --border: #2A3A52;
+  --text: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--font-body);
+  overflow: hidden;
+  height: 100dvh;
+  width: 100vw;
+  -webkit-font-smoothing: antialiased;
+}
+
+.deck { position: relative; width: 100%; height: 100%; }
+
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  padding: 48px 64px;
+  opacity: 0; transform: translateX(60px);
+  transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none; overflow-y: auto;
+}
+.slide.active { opacity: 1; transform: translateX(0); pointer-events: auto; }
+.slide.exit-left { opacity: 0; transform: translateX(-60px); }
+
+/* RTL flip */
+[dir="rtl"] .slide { transform: translateX(-60px); }
+[dir="rtl"] .slide.active { transform: translateX(0); }
+[dir="rtl"] .slide.exit-left { transform: translateX(60px); }
+
+/* Language toggle */
+[data-lang="en"] .ar { display: none !important; }
+[data-lang="ar"] .en { display: none !important; }
+[dir="rtl"] { text-align: right; }
+[dir="rtl"] .slide-content, [dir="rtl"] .split-text { align-items: flex-start; }
+[dir="rtl"] .split, [dir="rtl"] .arch-flow, [dir="rtl"] .stat-row { direction: rtl; }
+[dir="rtl"] .feature-card { text-align: right; }
+[dir="rtl"] .cta-box { text-align: center; }
+[dir="rtl"] .nav-bar { direction: rtl; }
+.ar { line-height: 1.8; }
+.ar.display-xl, .ar.display-lg, .ar.display-md { line-height: 1.3; }
+
+/* Typography */
+.display { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; text-wrap: balance; }
+[dir="rtl"] .display { letter-spacing: 0; }
+.display-xl { font-size: clamp(36px, 6vw, 72px); }
+.display-lg { font-size: clamp(28px, 4vw, 52px); }
+.display-md { font-size: clamp(22px, 3vw, 36px); }
+.body-lg { font-size: clamp(16px, 1.8vw, 22px); line-height: 1.6; color: var(--text-secondary); max-width: 65ch; }
+.body-md { font-size: clamp(14px, 1.4vw, 18px); line-height: 1.6; color: var(--text-secondary); }
+.label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); }
+[dir="rtl"] .label { letter-spacing: 0; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.slide-content { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 32px; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; width: 100%; max-width: 1200px; }
+.split-text { display: flex; flex-direction: column; gap: 20px; }
+
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; width: 100%; }
+.feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px; transition: transform 0.2s ease, border-color 0.2s ease; }
+.feature-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.feature-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.feature-card h3 { font-size: 16px; font-weight: 700; color: var(--text); }
+.feature-card p { font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+
+.phase-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; }
+.phase-1 { background: rgba(59,130,246,0.15); color: var(--accent-light); }
+.phase-2 { background: rgba(16,185,129,0.15); color: var(--green-light); }
+.phase-3 { background: rgba(245,158,11,0.15); color: var(--amber-light); }
+.phase-4 { background: rgba(239,68,68,0.15); color: #FCA5A5; }
+
+.stat-row { display: flex; gap: 32px; flex-wrap: wrap; }
+.stat { display: flex; flex-direction: column; gap: 4px; }
+.stat-value { font-family: var(--font-display); font-weight: 800; font-size: clamp(28px, 4vw, 48px); letter-spacing: -0.02em; background: var(--gradient-blue); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.stat-value.amber { background: var(--gradient-amber); -webkit-background-clip: text; background-clip: text; }
+.stat-value.green { background: var(--gradient-green); -webkit-background-clip: text; background-clip: text; }
+.stat-value.red { background: var(--gradient-red); -webkit-background-clip: text; background-clip: text; }
+.stat-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+
+.nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; gap: 12px; }
+.progress-track { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
+.nav-btn { background: none; border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.nav-btn:hover { border-color: var(--accent); color: var(--text); }
+.nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.nav-btn:disabled:hover { border-color: var(--border); color: var(--text-secondary); }
+.slide-counter { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); min-width: 48px; text-align: center; }
+
+.lang-toggle { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.lang-btn { background: none; border: none; color: var(--text-muted); padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; letter-spacing: 0.05em; }
+.lang-btn.active { background: var(--accent); color: #fff; }
+.lang-btn:hover:not(.active) { color: var(--text); }
+
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.stagger > * { opacity: 0; animation: fadeInUp 0.5s ease forwards; }
+.slide.active .stagger > *:nth-child(1) { animation-delay: 0.1s; }
+.slide.active .stagger > *:nth-child(2) { animation-delay: 0.2s; }
+.slide.active .stagger > *:nth-child(3) { animation-delay: 0.3s; }
+.slide.active .stagger > *:nth-child(4) { animation-delay: 0.5s; }
+.slide.active .stagger > *:nth-child(5) { animation-delay: 0.6s; }
+
+.hero-graphic { position: relative; width: 340px; height: 340px; flex-shrink: 0; }
+.hero-ring { position: absolute; border: 2px solid var(--border); border-radius: 50%; top: 50%; left: 50%; }
+.hero-ring-1 { width: 200px; height: 200px; margin: -100px 0 0 -100px; border-color: rgba(59,130,246,0.3); }
+.hero-ring-2 { width: 280px; height: 280px; margin: -140px 0 0 -140px; border-color: rgba(59,130,246,0.15); }
+.hero-ring-3 { width: 340px; height: 340px; margin: -170px 0 0 -170px; border-color: rgba(59,130,246,0.08); }
+.hero-node { position: absolute; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: var(--shadow); animation: float 3s ease-in-out infinite; top: 50%; left: 50%; }
+.hero-center { width: 64px; height: 64px; margin: -32px 0 0 -32px; background: var(--gradient-blue); border-radius: 16px; font-size: 28px; z-index: 2; animation: none; }
+.hero-n1 { margin: -150px 0 0 -24px; background: var(--gradient-amber); animation-delay: 0s; }
+.hero-n2 { margin: -50px 0 0 100px; background: var(--gradient-green); animation-delay: 0.5s; }
+.hero-n3 { margin: 70px 0 0 60px; background: var(--gradient-red); animation-delay: 1s; }
+.hero-n4 { margin: 70px 0 0 -100px; background: rgba(59,130,246,0.8); animation-delay: 1.5s; }
+.hero-n5 { margin: -50px 0 0 -140px; background: rgba(16,185,129,0.8); animation-delay: 2s; }
+
+.arch-flow { display: flex; gap: 16px; align-items: stretch; width: 100%; overflow-x: auto; }
+.arch-phase { flex: 1; min-width: 200px; border-radius: 16px; padding: 24px 20px; display: flex; flex-direction: column; gap: 12px; }
+.arch-phase h3 { font-size: 15px; font-weight: 700; }
+.arch-phase ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.arch-phase li { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+.arch-phase li::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.arch-p1 { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); }
+.arch-p1 h3 { color: var(--accent-light); } .arch-p1 li::before { background: var(--accent); }
+.arch-p2 { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); }
+.arch-p2 h3 { color: var(--green-light); } .arch-p2 li::before { background: var(--green); }
+.arch-p3 { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); }
+.arch-p3 h3 { color: var(--amber-light); } .arch-p3 li::before { background: var(--amber); }
+.arch-p4 { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); }
+.arch-p4 h3 { color: #FCA5A5; } .arch-p4 li::before { background: var(--red); }
+
+.tech-pills { display: flex; flex-wrap: wrap; gap: 10px; }
+.tech-pill { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; font-size: 14px; font-weight: 600; color: var(--text); }
+.tech-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+.mock-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); max-width: 500px; width: 100%; }
+.mock-titlebar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--surface-raised); border-bottom: 1px solid var(--border); }
+.mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+.mock-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.mock-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; background: var(--surface-raised); }
+.mock-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+
+.bullet-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.bullet-list li { display: flex; align-items: center; gap: 10px; }
+.bullet-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.cta-box { background: var(--gradient-blue); border-radius: 20px; padding: 48px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px; max-width: 700px; width: 100%; }
+.cta-box .display { color: #FFFFFF; }
+.cta-box p { color: rgba(255,255,255,0.8); }
+.cta-btn { padding: 14px 36px; background: #FFFFFF; color: #1D4ED8; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.15s ease; }
+.cta-btn:hover { transform: scale(1.03); }
+
+.highlight-blue { color: var(--accent-light); }
+.highlight-amber { color: var(--amber); }
+.highlight-green { color: var(--green-light); }
+
+@media (max-width: 768px) {
+  .slide { padding: 24px 20px 72px; }
+  .split { grid-template-columns: 1fr; gap: 24px; }
+  .hero-graphic { width: 240px; height: 240px; }
+  .hero-ring-1 { width: 140px; height: 140px; margin: -70px 0 0 -70px; }
+  .hero-ring-2 { width: 200px; height: 200px; margin: -100px 0 0 -100px; }
+  .hero-ring-3 { width: 240px; height: 240px; margin: -120px 0 0 -120px; }
+  .hero-node { width: 36px; height: 36px; font-size: 16px; border-radius: 10px; }
+  .hero-center { width: 48px; height: 48px; margin: -24px 0 0 -24px; font-size: 22px; }
+  .hero-n1 { margin: -100px 0 0 -18px; } .hero-n2 { margin: -30px 0 0 70px; }
+  .hero-n3 { margin: 50px 0 0 40px; } .hero-n4 { margin: 50px 0 0 -70px; }
+  .hero-n5 { margin: -30px 0 0 -100px; }
+  .arch-flow { flex-direction: column; }
+  .card-grid { grid-template-columns: 1fr; }
+  .stat-row { gap: 20px; }
+  .cta-box { padding: 32px 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide { transition: opacity 0.2s ease; transform: none !important; }
+  .slide.exit-left { transform: none !important; }
+  .hero-node { animation: none !important; }
+  .stagger > * { animation: fadeIn 0.3s ease forwards !important; }
+}
+</style>
+
+<div class="deck" id="deck" data-lang="en" dir="ltr">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active" data-slide="0">
+    <div class="split">
+      <div class="split-text stagger">
+        <span class="label"><span class="en">Disaster Logistics &amp; Supply Chain Management</span><span class="ar">إدارة الخدمات اللوجستية وسلاسل الإمداد في الكوارث</span></span>
+        <h1 class="display display-xl"><span class="en">DLSCM<br><span class="highlight-blue">Platform</span></span><span class="ar display display-xl">منصة<br><span class="highlight-blue">DLSCM</span></span></h1>
+        <p class="body-lg"><span class="en">End-to-end coordination for humanitarian supply chains. From warehouse to last mile, in every crisis.</span><span class="ar">تنسيق شامل لسلاسل الإمداد الإنسانية. من المستودع إلى الميل الأخير، في كل أزمة.</span></p>
+        <div class="stat-row">
+          <div class="stat"><span class="stat-value">25</span><span class="stat-label"><span class="en">Operational Views</span><span class="ar">واجهة تشغيلية</span></span></div>
+          <div class="stat"><span class="stat-value amber">6</span><span class="stat-label"><span class="en">UN Languages</span><span class="ar">لغات أممية</span></span></div>
+          <div class="stat"><span class="stat-value green">4</span><span class="stat-label"><span class="en">Deployment Phases</span><span class="ar">مراحل النشر</span></span></div>
+        </div>
+      </div>
+      <div class="hero-graphic">
+        <div class="hero-ring hero-ring-3"></div>
+        <div class="hero-ring hero-ring-2"></div>
+        <div class="hero-ring hero-ring-1"></div>
+        <div class="hero-node hero-center">&#x1F30D;</div>
+        <div class="hero-node hero-n1">&#x1F4E6;</div>
+        <div class="hero-node hero-n2">&#x1F69A;</div>
+        <div class="hero-node hero-n3">&#x1F3E5;</div>
+        <div class="hero-node hero-n4">&#x2708;&#xFE0F;</div>
+        <div class="hero-node hero-n5">&#x1F4CA;</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: The Problem -->
+  <div class="slide" data-slide="1">
+    <div class="slide-content stagger">
+      <span class="label"><span class="en">The Challenge</span><span class="ar">التحدي</span></span>
+      <h2 class="display display-lg"><span class="en">When disaster strikes,<br><span class="highlight-amber">every hour matters</span></span><span class="ar display display-lg">عندما تضرب الكارثة،<br><span class="highlight-amber">كل ساعة تحسم</span></span></h2>
+      <p class="body-lg"><span class="en">Humanitarian organizations face fragmented systems, siloed data, and manual coordination that slows response when speed saves lives.</span><span class="ar">تواجه المنظمات الإنسانية أنظمة مجزأة وبيانات منعزلة وتنسيقاً يدوياً يبطئ الاستجابة حين تكون السرعة منقذة للأرواح.</span></p>
+      <div class="stat-row" style="margin-top:16px;">
+        <div class="stat"><span class="stat-value red">72h</span><span class="stat-label"><span class="en">Average response delay</span><span class="ar">متوسط تأخير الاستجابة</span></span></div>
+        <div class="stat"><span class="stat-value amber">40%</span><span class="stat-label"><span class="en">Supply chain waste</span><span class="ar">هدر سلاسل الإمداد</span></span></div>
+        <div class="stat"><span class="stat-value">15+</span><span class="stat-label"><span class="en">Agencies per crisis</span><span class="ar">وكالة لكل أزمة</span></span></div>
+        <div class="stat"><span class="stat-value red">0</span><span class="stat-label"><span class="en">Unified platforms</span><span class="ar">منصات موحّدة</span></span></div>
+      </div>
+      <div class="card-grid" style="margin-top:8px;">
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(239,68,68,0.15);color:var(--red);">&#x26A0;&#xFE0F;</div>
+          <h3><span class="en">Fragmented Data</span><span class="ar">بيانات مجزأة</span></h3>
+          <p><span class="en">Inventory tracked across spreadsheets, WhatsApp, and disconnected databases</span><span class="ar">المخزون مُتتبَّع عبر جداول البيانات وواتساب وقواعد بيانات غير مترابطة</span></p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(245,158,11,0.15);color:var(--amber);">&#x23F3;</div>
+          <h3><span class="en">Slow Coordination</span><span class="ar">تنسيق بطيء</span></h3>
+          <p><span class="en">Multi-agency response relies on phone calls and manual situation reports</span><span class="ar">استجابة الوكالات المتعددة تعتمد على المكالمات الهاتفية والتقارير اليدوية</span></p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(59,130,246,0.15);color:var(--accent);">&#x1F4B8;</div>
+          <h3><span class="en">Donor Reporting</span><span class="ar">تقارير المانحين</span></h3>
+          <p><span class="en">Weeks spent compiling compliance reports instead of delivering aid</span><span class="ar">أسابيع تُنفق في إعداد تقارير الامتثال بدلاً من إيصال المساعدات</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: The Solution -->
+  <div class="slide" data-slide="2">
+    <div class="slide-content stagger">
+      <span class="label"><span class="en">The Solution</span><span class="ar">الحل</span></span>
+      <h2 class="display display-lg"><span class="en">One platform.<br><span class="highlight-green">Every operation.</span></span><span class="ar display display-lg">منصة واحدة.<br><span class="highlight-green">كل العمليات.</span></span></h2>
+      <p class="body-lg"><span class="en">DLSCM unifies inventory management, supply chain coordination, AI-powered forecasting, and donor reporting into a single offline-first platform built for crisis environments.</span><span class="ar">تجمع DLSCM إدارة المخزون وتنسيق سلاسل الإمداد والتنبؤ بالذكاء الاصطناعي وتقارير المانحين في منصة واحدة مصمّمة للعمل دون اتصال في بيئات الأزمات.</span></p>
+      <div class="card-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(59,130,246,0.15);color:var(--accent);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></div>
+          <h3><span class="en">Real-Time Inventory</span><span class="ar">مخزون لحظي</span></h3>
+          <p><span class="en">Track supplies across every warehouse with live stock levels, expiry alerts, and cross-org visibility</span><span class="ar">تتبع الإمدادات عبر كل المستودعات مع مستويات المخزون الحية وتنبيهات انتهاء الصلاحية</span></p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(16,185,129,0.15);color:var(--green);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <h3><span class="en">AI Forecasting</span><span class="ar">تنبؤ بالذكاء الاصطناعي</span></h3>
+          <p><span class="en">Predict demand surges before they happen using ML models trained on historical crisis data</span><span class="ar">توقّع ارتفاع الطلب قبل حدوثه باستخدام نماذج تعلم آلي مدرّبة على بيانات أزمات سابقة</span></p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(245,158,11,0.15);color:var(--amber);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <h3><span class="en">3W Coordination</span><span class="ar">تنسيق 3W</span></h3>
+          <p><span class="en">Who is doing What, Where — multi-agency coordination matrix with live mapping</span><span class="ar">مَن يفعل ماذا وأين — مصفوفة تنسيق بين الوكالات مع خرائط حية</span></p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(239,68,68,0.15);color:var(--red);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <h3><span class="en">Open Standards</span><span class="ar">معايير مفتوحة</span></h3>
+          <p><span class="en">EDXL/CAP compliant messaging for seamless interoperability with global alert systems</span><span class="ar">رسائل متوافقة مع EDXL/CAP للتكامل السلس مع أنظمة الإنذار العالمية</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Architecture -->
+  <div class="slide" data-slide="3">
+    <div class="slide-content stagger">
+      <span class="label"><span class="en">Architecture</span><span class="ar">البنية</span></span>
+      <h2 class="display display-lg"><span class="en">Built in <span class="highlight-blue">four phases</span></span><span class="ar display display-lg">بُنيت على <span class="highlight-blue">أربع مراحل</span></span></h2>
+      <p class="body-md"><span class="en">Modular deployment from core logistics to full ecosystem — adopt what you need, when you need it.</span><span class="ar">نشر نمطي من اللوجستيات الأساسية إلى النظام الإيكولوجي الكامل — اعتمد ما تحتاجه حين تحتاجه.</span></p>
+      <div class="arch-flow">
+        <div class="arch-phase arch-p1">
+          <span class="phase-badge phase-1"><span class="en">Phase 1</span><span class="ar">المرحلة 1</span></span>
+          <h3><span class="en">Foundation</span><span class="ar">الأساس</span></h3>
+          <ul><li><span class="en">Dashboard &amp; Alerts</span><span class="ar">لوحة المعلومات والتنبيهات</span></li><li><span class="en">Inventory Management</span><span class="ar">إدارة المخزون</span></li><li><span class="en">Supply Requests</span><span class="ar">طلبات الإمداد</span></li><li><span class="en">Shipment Tracking</span><span class="ar">تتبع الشحنات</span></li><li><span class="en">Supplier Registry</span><span class="ar">سجل الموردين</span></li><li><span class="en">Kit Assembly</span><span class="ar">تجميع الأطقم</span></li><li><span class="en">Donations In-Kind</span><span class="ar">التبرعات العينية</span></li><li><span class="en">Cross-Org Visibility</span><span class="ar">الرؤية المشتركة</span></li><li><span class="en">Prepositioning</span><span class="ar">التموضع المسبق</span></li></ul>
+        </div>
+        <div class="arch-phase arch-p2">
+          <span class="phase-badge phase-2"><span class="en">Phase 2</span><span class="ar">المرحلة 2</span></span>
+          <h3><span class="en">Intelligence</span><span class="ar">الاستخبارات</span></h3>
+          <ul><li><span class="en">Crisis Intelligence</span><span class="ar">استخبارات الأزمات</span></li><li><span class="en">3W Coordination</span><span class="ar">تنسيق 3W</span></li><li><span class="en">Demand Forecasting</span><span class="ar">التنبؤ بالطلب</span></li><li><span class="en">Route Optimization</span><span class="ar">تحسين المسارات</span></li><li><span class="en">Donor Reports</span><span class="ar">تقارير المانحين</span></li><li><span class="en">Compliance Dashboard</span><span class="ar">لوحة الامتثال</span></li><li><span class="en">EDXL/CAP Exchange</span><span class="ar">تبادل EDXL/CAP</span></li></ul>
+        </div>
+        <div class="arch-phase arch-p3">
+          <span class="phase-badge phase-3"><span class="en">Phase 3</span><span class="ar">المرحلة 3</span></span>
+          <h3><span class="en">Scale</span><span class="ar">التوسع</span></h3>
+          <ul><li><span class="en">Surge Marketplace</span><span class="ar">سوق الطوارئ</span></li><li><span class="en">After-Action Review</span><span class="ar">مراجعة ما بعد العمل</span></li><li><span class="en">Recovery Planning</span><span class="ar">تخطيط التعافي</span></li></ul>
+        </div>
+        <div class="arch-phase arch-p4">
+          <span class="phase-badge phase-4"><span class="en">Phase 4</span><span class="ar">المرحلة 4</span></span>
+          <h3><span class="en">Ecosystem</span><span class="ar">النظام الإيكولوجي</span></h3>
+          <ul><li><span class="en">Simulation Engine</span><span class="ar">محرك المحاكاة</span></li><li><span class="en">Risk Dashboard</span><span class="ar">لوحة المخاطر</span></li><li><span class="en">Community Toolkit</span><span class="ar">أدوات المجتمع</span></li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Dashboard -->
+  <div class="slide" data-slide="4">
+    <div class="split">
+      <div class="split-text stagger">
+        <span class="phase-badge phase-1"><span class="en">Phase 1 &middot; Foundation</span><span class="ar">المرحلة 1 &middot; الأساس</span></span>
+        <h2 class="display display-lg"><span class="en">Command &amp;<br><span class="highlight-blue">Control Center</span></span><span class="ar display display-lg">مركز القيادة<br><span class="highlight-blue">والتحكم</span></span></h2>
+        <p class="body-md"><span class="en">Real-time operational awareness with live GDACS alerts, interactive mapping, and unified KPI dashboards.</span><span class="ar">وعي تشغيلي لحظي مع تنبيهات GDACS الحية وخرائط تفاعلية ولوحات مؤشرات أداء موحّدة.</span></p>
+        <ul class="bullet-list body-md">
+          <li><span class="bullet-dot" style="background:var(--accent);"></span><span class="en">Live disaster tracking from GDACS, ReliefWeb, ICRC</span><span class="ar">تتبع حي للكوارث من GDACS وReliefWeb والصليب الأحمر</span></li>
+          <li><span class="bullet-dot" style="background:var(--green);"></span><span class="en">Interactive Leaflet maps with warehouse overlays</span><span class="ar">خرائط Leaflet تفاعلية مع طبقات المستودعات</span></li>
+          <li><span class="bullet-dot" style="background:var(--amber);"></span><span class="en">Multi-warehouse inventory with stock-level alerts</span><span class="ar">مخزون متعدد المستودعات مع تنبيهات المخزون</span></li>
+          <li><span class="bullet-dot" style="background:var(--red);"></span><span class="en">Supply request workflow: create, approve, dispatch</span><span class="ar">سير عمل الطلبات: إنشاء، موافقة، إرسال</span></li>
+        </ul>
+      </div>
+      <div class="mock-panel">
+        <div class="mock-titlebar">
+          <div class="mock-dot" style="background:var(--red);"></div><div class="mock-dot" style="background:var(--amber);"></div><div class="mock-dot" style="background:var(--green);"></div>
+          <span style="flex:1;text-align:center;font-size:12px;color:var(--text-muted);"><span class="en">DLSCM Dashboard</span><span class="ar">لوحة معلومات DLSCM</span></span>
+        </div>
+        <div class="mock-body">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+            <div class="mock-row" style="flex-direction:column;align-items:flex-start;gap:4px;"><span style="font-size:11px;color:var(--text-muted);"><span class="en">Active Disasters</span><span class="ar">كوارث نشطة</span></span><span style="font-size:24px;font-weight:800;color:var(--red);">7</span></div>
+            <div class="mock-row" style="flex-direction:column;align-items:flex-start;gap:4px;"><span style="font-size:11px;color:var(--text-muted);"><span class="en">Pending Requests</span><span class="ar">طلبات معلقة</span></span><span style="font-size:24px;font-weight:800;color:var(--amber);">23</span></div>
+            <div class="mock-row" style="flex-direction:column;align-items:flex-start;gap:4px;"><span style="font-size:11px;color:var(--text-muted);"><span class="en">In Transit</span><span class="ar">قيد النقل</span></span><span style="font-size:24px;font-weight:800;color:var(--accent);">12</span></div>
+            <div class="mock-row" style="flex-direction:column;align-items:flex-start;gap:4px;"><span style="font-size:11px;color:var(--text-muted);"><span class="en">Active Alerts</span><span class="ar">تنبيهات نشطة</span></span><span style="font-size:24px;font-weight:800;color:var(--green);">4</span></div>
+          </div>
+          <div class="mock-row" style="height:80px;background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(16,185,129,0.1));border:1px dashed var(--border);justify-content:center;"><span style="font-size:12px;color:var(--text-muted);"><span class="en">&#x1F5FA;&#xFE0F; Global Operations Map</span><span class="ar">&#x1F5FA;&#xFE0F; خريطة العمليات العالمية</span></span></div>
+          <div class="mock-row"><span class="mock-badge" style="background:rgba(239,68,68,0.15);color:var(--red);"><span class="en">CRITICAL</span><span class="ar">حرج</span></span><span style="font-size:12px;flex:1;"><span class="en">Earthquake M6.2 - Turkey</span><span class="ar">زلزال 6.2 - تركيا</span></span><span style="font-size:11px;color:var(--text-muted);"><span class="en">2m ago</span><span class="ar">منذ 2د</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Intelligence -->
+  <div class="slide" data-slide="5">
+    <div class="split">
+      <div class="mock-panel">
+        <div class="mock-titlebar">
+          <div class="mock-dot" style="background:var(--red);"></div><div class="mock-dot" style="background:var(--amber);"></div><div class="mock-dot" style="background:var(--green);"></div>
+          <span style="flex:1;text-align:center;font-size:12px;color:var(--text-muted);"><span class="en">Demand Forecasting</span><span class="ar">التنبؤ بالطلب</span></span>
+        </div>
+        <div class="mock-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;"><span class="en">14-Day Projection</span><span class="ar">إسقاط 14 يوماً</span></span><span class="mock-badge" style="background:rgba(16,185,129,0.15);color:var(--green);"><span class="en">AI Powered</span><span class="ar">ذكاء اصطناعي</span></span></div>
+          <div style="display:flex;align-items:flex-end;gap:4px;height:100px;padding-top:12px;">
+            <div style="flex:1;background:var(--accent);border-radius:4px 4px 0 0;height:45%;"></div>
+            <div style="flex:1;background:var(--accent);border-radius:4px 4px 0 0;height:52%;"></div>
+            <div style="flex:1;background:var(--accent);border-radius:4px 4px 0 0;height:60%;"></div>
+            <div style="flex:1;background:var(--accent);border-radius:4px 4px 0 0;height:68%;"></div>
+            <div style="flex:1;background:var(--accent);border-radius:4px 4px 0 0;height:75%;"></div>
+            <div style="flex:1;background:var(--accent);border-radius:4px 4px 0 0;height:82%;"></div>
+            <div style="flex:1;background:var(--accent);border-radius:4px 4px 0 0;height:88%;"></div>
+            <div style="flex:1;background:rgba(59,130,246,0.4);border-radius:4px 4px 0 0;height:90%;border:1px dashed var(--accent);"></div>
+            <div style="flex:1;background:rgba(59,130,246,0.4);border-radius:4px 4px 0 0;height:95%;border:1px dashed var(--accent);"></div>
+            <div style="flex:1;background:rgba(59,130,246,0.4);border-radius:4px 4px 0 0;height:100%;border:1px dashed var(--accent);"></div>
+            <div style="flex:1;background:rgba(59,130,246,0.4);border-radius:4px 4px 0 0;height:97%;border:1px dashed var(--accent);"></div>
+            <div style="flex:1;background:rgba(59,130,246,0.4);border-radius:4px 4px 0 0;height:92%;border:1px dashed var(--accent);"></div>
+            <div style="flex:1;background:rgba(59,130,246,0.4);border-radius:4px 4px 0 0;height:85%;border:1px dashed var(--accent);"></div>
+            <div style="flex:1;background:rgba(59,130,246,0.4);border-radius:4px 4px 0 0;height:78%;border:1px dashed var(--accent);"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);"><span><span class="en">Day 1</span><span class="ar">يوم 1</span></span><span><span class="en">Day 7</span><span class="ar">يوم 7</span></span><span><span class="en">Day 14</span><span class="ar">يوم 14</span></span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="mock-row" style="flex-direction:column;align-items:flex-start;gap:2px;"><span style="font-size:10px;color:var(--text-muted);"><span class="en">Peak Demand</span><span class="ar">ذروة الطلب</span></span><span style="font-size:16px;font-weight:700;color:var(--accent);"><span class="en">Day 9</span><span class="ar">يوم 9</span></span></div>
+            <div class="mock-row" style="flex-direction:column;align-items:flex-start;gap:2px;"><span style="font-size:10px;color:var(--text-muted);"><span class="en">Confidence</span><span class="ar">الثقة</span></span><span style="font-size:16px;font-weight:700;color:var(--green);">87%</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="split-text stagger">
+        <span class="phase-badge phase-2"><span class="en">Phase 2 &middot; Intelligence</span><span class="ar">المرحلة 2 &middot; الاستخبارات</span></span>
+        <h2 class="display display-lg"><span class="en">Predict.<br><span class="highlight-green">Don't react.</span></span><span class="ar display display-lg">تنبّأ.<br><span class="highlight-green">لا تنتظر.</span></span></h2>
+        <p class="body-md"><span class="en">ML-powered demand forecasting with time-series decomposition, cross-model risk intelligence, and route optimization via OSRM.</span><span class="ar">تنبؤ بالطلب مدعوم بالتعلم الآلي مع تحليل السلاسل الزمنية واستخبارات المخاطر وتحسين المسارات عبر OSRM.</span></p>
+        <ul class="bullet-list body-md">
+          <li><span class="bullet-dot" style="background:var(--green);"></span><span class="en">14-day demand projection with confidence intervals</span><span class="ar">إسقاط الطلب لـ14 يوماً مع فترات الثقة</span></li>
+          <li><span class="bullet-dot" style="background:var(--accent);"></span><span class="en">Multi-modal route optimization (road, air, sea)</span><span class="ar">تحسين مسارات متعددة الوسائط (بري، جوي، بحري)</span></li>
+          <li><span class="bullet-dot" style="background:var(--amber);"></span><span class="en">Crisis intelligence from ReliefWeb &amp; GDACS</span><span class="ar">استخبارات الأزمات من ReliefWeb وGDACS</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Scale -->
+  <div class="slide" data-slide="6">
+    <div class="slide-content stagger">
+      <span class="phase-badge phase-3"><span class="en">Phase 3 &middot; Scale</span><span class="ar">المرحلة 3 &middot; التوسع</span></span>
+      <h2 class="display display-lg"><span class="en">Surge capacity,<br><span class="highlight-amber">on demand</span></span><span class="ar display display-lg">قدرة طوارئ<br><span class="highlight-amber">عند الطلب</span></span></h2>
+      <p class="body-lg"><span class="en">When local capacity is exceeded, the Surge Marketplace connects organizations with available resources across the humanitarian network.</span><span class="ar">عندما تتجاوز الاحتياجات القدرة المحلية، يربط سوق الطوارئ المنظمات بالموارد المتاحة عبر الشبكة الإنسانية.</span></p>
+      <div class="card-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(245,158,11,0.15);color:var(--amber);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></div>
+          <h3><span class="en">Surge Marketplace</span><span class="ar">سوق الطوارئ</span></h3>
+          <p><span class="en">AI-powered matching connects supply needs with available capacity across organizations</span><span class="ar">مطابقة ذكية تربط احتياجات الإمداد بالقدرات المتاحة عبر المنظمات</span></p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(59,130,246,0.15);color:var(--accent);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div>
+          <h3><span class="en">After-Action Review</span><span class="ar">مراجعة ما بعد العمل</span></h3>
+          <p><span class="en">Structured post-response analysis with lessons learned and improvement tracking</span><span class="ar">تحليل منهجي لما بعد الاستجابة مع الدروس المستفادة وتتبع التحسينات</span></p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(16,185,129,0.15);color:var(--green);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg></div>
+          <h3><span class="en">Recovery Planning</span><span class="ar">تخطيط التعافي</span></h3>
+          <p><span class="en">Multi-phase recovery plans with procurement tracking and completion milestones</span><span class="ar">خطط تعافي متعددة المراحل مع تتبع المشتريات ومعالم الإنجاز</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Ecosystem -->
+  <div class="slide" data-slide="7">
+    <div class="slide-content stagger">
+      <span class="phase-badge phase-4"><span class="en">Phase 4 &middot; Ecosystem</span><span class="ar">المرحلة 4 &middot; النظام الإيكولوجي</span></span>
+      <h2 class="display display-lg"><span class="en">Prepare today.<br><span class="highlight-blue">Respond tomorrow.</span></span><span class="ar display display-lg">استعد اليوم.<br><span class="highlight-blue">استجب غداً.</span></span></h2>
+      <p class="body-lg"><span class="en">Simulation engines, risk dashboards, and community resilience toolkits — turning reactive response into proactive preparedness.</span><span class="ar">محركات محاكاة ولوحات مخاطر وأدوات صمود مجتمعي — لتحويل الاستجابة التفاعلية إلى استعداد استباقي.</span></p>
+      <div class="card-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(239,68,68,0.15);color:var(--red);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div>
+          <h3><span class="en">Simulation Engine</span><span class="ar">محرك المحاكاة</span></h3>
+          <p><span class="en">Run disaster scenarios with configurable parameters to test preparedness and identify gaps</span><span class="ar">تشغيل سيناريوهات كوارث بمعايير قابلة للتهيئة لاختبار الاستعداد وتحديد الثغرات</span></p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(245,158,11,0.15);color:var(--amber);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <h3><span class="en">Risk Dashboard</span><span class="ar">لوحة المخاطر</span></h3>
+          <p><span class="en">Composite risk scoring with multi-hazard analysis and population exposure mapping</span><span class="ar">تقييم مركّب للمخاطر مع تحليل متعدد الأخطار وخرائط التعرض السكاني</span></p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(16,185,129,0.15);color:var(--green);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <h3><span class="en">Community Toolkit</span><span class="ar">أدوات المجتمع</span></h3>
+          <p><span class="en">Resilience scorecards and preparedness checklists empowering local communities</span><span class="ar">بطاقات الصمود وقوائم الاستعداد لتمكين المجتمعات المحلية</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Tech -->
+  <div class="slide" data-slide="8">
+    <div class="slide-content stagger">
+      <span class="label"><span class="en">Under the Hood</span><span class="ar">تحت الغطاء</span></span>
+      <h2 class="display display-lg"><span class="en">Built for the <span class="highlight-blue">real world</span></span><span class="ar display display-lg">مبني <span class="highlight-blue">للعالم الحقيقي</span></span></h2>
+      <div class="card-grid" style="margin-top:8px;">
+        <div class="feature-card"><h3><span class="en">Offline-First</span><span class="ar">العمل دون اتصال أولاً</span></h3><p><span class="en">IndexedDB caching keeps the platform operational when connectivity fails</span><span class="ar">التخزين المؤقت بـIndexedDB يبقي المنصة عاملة عند انقطاع الاتصال</span></p></div>
+        <div class="feature-card"><h3><span class="en">6 UN Languages</span><span class="ar">6 لغات أممية</span></h3><p><span class="en">Full i18n with RTL Arabic support — EN, AR, FR, ES, ZH, RU</span><span class="ar">دعم كامل للتدويل مع العربية من اليمين لليسار</span></p></div>
+        <div class="feature-card"><h3><span class="en">Real-Time Updates</span><span class="ar">تحديثات لحظية</span></h3><p><span class="en">WebSocket push for live inventory changes and alert broadcasts</span><span class="ar">إشعارات WebSocket لحظية لتغييرات المخزون وبث التنبيهات</span></p></div>
+        <div class="feature-card"><h3><span class="en">Security Hardened</span><span class="ar">أمان معزّز</span></h3><p><span class="en">JWT auth, rate limiting, CORS policies, structured logging</span><span class="ar">مصادقة JWT، تحديد المعدل، سياسات CORS، تسجيل منظم</span></p></div>
+      </div>
+      <div class="tech-pills" style="margin-top:8px;">
+        <div class="tech-pill"><span class="dot" style="background:#42b883;"></span>Vue 3</div>
+        <div class="tech-pill"><span class="dot" style="background:#009688;"></span>FastAPI</div>
+        <div class="tech-pill"><span class="dot" style="background:#003B57;"></span>SQLite</div>
+        <div class="tech-pill"><span class="dot" style="background:#199900;"></span>Leaflet</div>
+        <div class="tech-pill"><span class="dot" style="background:#FF6384;"></span>Chart.js</div>
+        <div class="tech-pill"><span class="dot" style="background:#646CFF;"></span>Vite</div>
+        <div class="tech-pill"><span class="dot" style="background:#F7DF1E;"></span>Pinia</div>
+        <div class="tech-pill"><span class="dot" style="background:#2496ED;"></span>WebSockets</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: CTA -->
+  <div class="slide" data-slide="9">
+    <div class="slide-content stagger" style="align-items:center;">
+      <div class="cta-box">
+        <h2 class="display display-lg"><span class="en">Ready to transform<br>humanitarian logistics?</span><span class="ar display display-lg">مستعد لتحويل<br>الخدمات اللوجستية الإنسانية؟</span></h2>
+        <p class="body-lg" style="max-width:50ch;"><span class="en">DLSCM is open, modular, and built for the organizations saving lives when disaster strikes.</span><span class="ar">DLSCM مفتوحة ونمطية ومصمّمة للمنظمات التي تنقذ الأرواح عند وقوع الكوارث.</span></p>
+        <button class="cta-btn"><span class="en">Get Started</span><span class="ar">ابدأ الآن</span></button>
+      </div>
+      <div class="stat-row" style="margin-top:32px;">
+        <div class="stat" style="text-align:center;"><span class="stat-value">25</span><span class="stat-label"><span class="en">Views</span><span class="ar">واجهة</span></span></div>
+        <div class="stat" style="text-align:center;"><span class="stat-value amber">784</span><span class="stat-label"><span class="en">i18n Keys</span><span class="ar">مفتاح ترجمة</span></span></div>
+        <div class="stat" style="text-align:center;"><span class="stat-value green">100%</span><span class="stat-label"><span class="en">Offline Capable</span><span class="ar">يعمل دون اتصال</span></span></div>
+        <div class="stat" style="text-align:center;"><span class="stat-value red">0</span><span class="stat-label"><span class="en">API Keys Required</span><span class="ar">لا يحتاج مفاتيح API</span></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Navigation -->
+<div class="nav-bar">
+  <button class="nav-btn" id="prevBtn" disabled><span class="en">&#x2190; Prev</span><span class="ar">السابق &#x2192;</span></button>
+  <div class="progress-track"><div class="progress-fill" id="progress" style="width:10%;"></div></div>
+  <span class="slide-counter" id="counter">1 / 10</span>
+  <div class="lang-toggle">
+    <button class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="langAr" onclick="setLang('ar')">عربي</button>
+  </div>
+  <button class="nav-btn" id="nextBtn"><span class="en">Next &#x2192;</span><span class="ar">&#x2190; التالي</span></button>
+</div>
+
+<script>
+(function() {
+  var deck = document.getElementById('deck');
+  var slides = deck.querySelectorAll('.slide');
+  var total = slides.length;
+  var current = 0;
+  var prevBtn = document.getElementById('prevBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  var progress = document.getElementById('progress');
+  var counter = document.getElementById('counter');
+
+  function goTo(n) {
+    if (n < 0 || n >= total || n === current) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add(n > current ? 'exit-left' : '');
+    setTimeout(function() { for (var i = 0; i < slides.length; i++) slides[i].classList.remove('exit-left'); }, 600);
+    current = n;
+    slides[current].classList.add('active');
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === total - 1;
+    progress.style.width = ((current + 1) / total * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + total;
+  }
+
+  prevBtn.addEventListener('click', function() { goTo(current - 1); });
+  nextBtn.addEventListener('click', function() { goTo(current + 1); });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End') { e.preventDefault(); goTo(total - 1); }
+  });
+
+  var touchStartX = 0;
+  deck.addEventListener('touchstart', function(e) { touchStartX = e.touches[0].clientX; }, { passive: true });
+  deck.addEventListener('touchend', function(e) {
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    var isRtl = deck.getAttribute('dir') === 'rtl';
+    if (Math.abs(dx) > 50) {
+      if (isRtl) { dx > 0 ? goTo(current + 1) : goTo(current - 1); }
+      else { dx < 0 ? goTo(current + 1) : goTo(current - 1); }
+    }
+  }, { passive: true });
+
+  window.setLang = function(lang) {
+    deck.setAttribute('data-lang', lang);
+    deck.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+    document.getElementById('langEn').classList.toggle('active', lang === 'en');
+    document.getElementById('langAr').classList.toggle('active', lang === 'ar');
+    document.querySelector('.nav-bar').setAttribute('data-lang', lang);
+  };
+  document.querySelector('.nav-bar').setAttribute('data-lang', 'en');
+})();
+</script>
+</body>
+</html>

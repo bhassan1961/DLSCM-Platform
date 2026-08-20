@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>DLSCM Training Guide</title>
+<style>
+:root{
+  --bg:#f5f6fa;--surface:#fff;--surface-alt:#edf0f7;--border:#d4d9e6;
+  --text:#1a2744;--text2:#5a6a85;--text3:#8594ad;
+  --pri:#1e3a5f;--pri-light:rgba(30,58,95,.07);--pri-hover:#15304f;
+  --accent:#0d9488;--accent-bg:rgba(13,148,136,.08);
+  --warn:#f59e0b;--warn-bg:rgba(245,158,11,.08);
+  --danger:#ef4444;--danger-bg:rgba(239,68,68,.07);
+  --info:#3b82f6;--info-bg:rgba(59,130,246,.07);
+  --success:#10b981;--success-bg:rgba(16,185,129,.07);
+  --fd:Georgia,'Times New Roman',serif;
+  --fb:system-ui,-apple-system,'Segoe UI',sans-serif;
+  --fm:'SF Mono','Cascadia Code',Consolas,monospace;
+  --r:8px;--sh:0 1px 3px rgba(26,39,68,.06);
+  --sidebar-w:260px;
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b0f1a;--surface:#131a2b;--surface-alt:#1a2236;--border:#283350;
+  --text:#e0e6f0;--text2:#8b9ab8;--text3:#5e6e8a;
+  --pri:#6b9fd4;--pri-light:rgba(107,159,212,.1);--pri-hover:#85b4e0;
+  --accent:#2dd4bf;--accent-bg:rgba(45,212,191,.1);
+  --warn-bg:rgba(245,158,11,.1);--danger-bg:rgba(239,68,68,.1);
+  --info-bg:rgba(59,130,246,.1);--success-bg:rgba(16,185,129,.1);
+  --sh:0 1px 4px rgba(0,0,0,.4);
+}}
+:root[data-theme="dark"]{
+  --bg:#0b0f1a;--surface:#131a2b;--surface-alt:#1a2236;--border:#283350;
+  --text:#e0e6f0;--text2:#8b9ab8;--text3:#5e6e8a;
+  --pri:#6b9fd4;--pri-light:rgba(107,159,212,.1);--pri-hover:#85b4e0;
+  --accent:#2dd4bf;--accent-bg:rgba(45,212,191,.1);
+  --warn-bg:rgba(245,158,11,.1);--danger-bg:rgba(239,68,68,.1);
+  --info-bg:rgba(59,130,246,.1);--success-bg:rgba(16,185,129,.1);
+  --sh:0 1px 4px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);line-height:1.65;font-size:15px}
+h1,h2,h3,h4{font-family:var(--fd);font-weight:700;letter-spacing:-.01em;color:var(--pri)}
+h1{font-size:26px}h2{font-size:21px;margin:36px 0 14px;padding-bottom:7px;border-bottom:2px solid var(--border)}
+h3{font-size:17px;margin:22px 0 10px}h4{font-size:15px;margin:16px 0 8px;color:var(--text)}
+
+/* Layout */
+.layout{display:flex;min-height:100vh}
+.sidebar{
+  width:var(--sidebar-w);position:fixed;top:0;left:0;bottom:0;
+  background:var(--surface);border-right:1px solid var(--border);
+  overflow-y:auto;padding:20px 0;z-index:100;transition:transform .25s;
+}
+.sidebar-hdr{padding:0 18px 16px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.sidebar-hdr h1{font-size:18px;margin-bottom:2px}
+.sidebar-hdr p{font-size:12px;color:var(--text2)}
+
+.sidebar-search{padding:0 14px 12px}
+.sidebar-search input{
+  width:100%;padding:7px 10px 7px 32px;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--surface-alt) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235a6a85' viewBox='0 0 24 24'%3E%3Cpath d='M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z' stroke='%235a6a85' stroke-width='2' fill='none'/%3E%3C/svg%3E") 8px center no-repeat;
+  font-size:13px;color:var(--text);font-family:var(--fb);
+}
+.sidebar-search input:focus{outline:none;border-color:var(--accent)}
+.sidebar-search input::placeholder{color:var(--text3)}
+
+.nav-group{margin-bottom:6px}
+.nav-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text3);padding:8px 18px 4px;
+}
+.nav-link{
+  display:block;padding:6px 18px 6px 28px;font-size:13px;color:var(--text2);
+  text-decoration:none;border-left:3px solid transparent;cursor:pointer;transition:all .15s;
+}
+.nav-link:hover{background:var(--pri-light);color:var(--text)}
+.nav-link.active{border-left-color:var(--accent);color:var(--accent);font-weight:600;background:var(--accent-bg)}
+
+.main{margin-left:var(--sidebar-w);flex:1;padding:32px 40px 80px;max-width:820px}
+
+.hamburger{
+  display:none;position:fixed;top:12px;left:12px;z-index:200;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  width:40px;height:40px;cursor:pointer;align-items:center;justify-content:center;
+  font-size:20px;color:var(--pri);box-shadow:var(--sh);
+}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90}
+
+@media(max-width:800px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .hamburger{display:flex}
+  .overlay.open{display:block}
+  .main{margin-left:0;padding:60px 20px 60px}
+}
+
+/* Content blocks */
+.callout{
+  padding:14px 16px;border-radius:var(--r);margin:14px 0;font-size:14px;
+  display:flex;gap:10px;align-items:flex-start;
+}
+.callout-icon{font-size:18px;flex-shrink:0;line-height:1.4}
+.callout-tip{background:var(--accent-bg);border-left:3px solid var(--accent)}
+.callout-warn{background:var(--warn-bg);border-left:3px solid var(--warn)}
+.callout-danger{background:var(--danger-bg);border-left:3px solid var(--danger)}
+.callout-info{background:var(--info-bg);border-left:3px solid var(--info)}
+
+.steps{counter-reset:step;list-style:none;padding:0;margin:14px 0}
+.steps li{
+  counter-increment:step;display:flex;gap:12px;padding:10px 0;
+  border-bottom:1px solid var(--border);font-size:14px;
+}
+.steps li:last-child{border-bottom:none}
+.steps li::before{
+  content:counter(step);min-width:28px;height:28px;border-radius:50%;
+  background:var(--pri-light);color:var(--pri);display:flex;align-items:center;
+  justify-content:center;font-family:var(--fm);font-size:13px;font-weight:700;flex-shrink:0;
+}
+
+.role-tag{
+  display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;
+  border-radius:100px;letter-spacing:.02em;
+}
+.role-all{background:var(--pri-light);color:var(--pri)}
+.role-ops{background:var(--accent-bg);color:var(--accent)}
+.role-field{background:var(--success-bg);color:var(--success)}
+.role-supply{background:var(--info-bg);color:var(--info)}
+.role-compliance{background:var(--warn-bg);color:var(--warn)}
+.role-admin{background:var(--danger-bg);color:var(--danger)}
+
+kbd{
+  font-family:var(--fm);font-size:12px;padding:2px 6px;
+  background:var(--surface-alt);border:1px solid var(--border);border-radius:4px;
+  color:var(--text2);
+}
+
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin:14px 0}
+.feature-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px;box-shadow:var(--sh);
+}
+.feature-card h4{margin:0 0 4px;font-size:14px}
+.feature-card p{font-size:13px;color:var(--text2);margin:0}
+
+details.module{margin:10px 0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh)}
+details.module summary{
+  padding:12px 16px;cursor:pointer;font-weight:600;font-size:14px;
+  list-style:none;display:flex;align-items:center;gap:8px;
+}
+details.module summary::before{content:'>';font-family:var(--fm);color:var(--text3);transition:transform .2s;font-size:12px}
+details.module[open] summary::before{transform:rotate(90deg)}
+details.module summary::-webkit-details-marker{display:none}
+details.module .module-body{padding:0 16px 16px;font-size:14px}
+
+table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+th{background:var(--surface-alt);border:1px solid var(--border);padding:8px 12px;text-align:left;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text2)}
+td{border:1px solid var(--border);padding:8px 12px;background:var(--surface);vertical-align:top}
+.tbl-wrap{overflow-x:auto}
+
+.workflow-path{
+  display:flex;align-items:center;gap:0;margin:14px 0;flex-wrap:wrap;
+}
+.workflow-node{
+  padding:6px 14px;background:var(--pri-light);border-radius:var(--r);
+  font-size:13px;font-weight:600;color:var(--pri);white-space:nowrap;
+}
+.workflow-arrow{color:var(--text3);font-size:16px;padding:0 4px}
+
+.search-highlight{background:var(--warn);color:#000;border-radius:2px;padding:0 2px}
+
+.glossary-term{font-weight:700;color:var(--pri)}
+.glossary-def{font-size:14px;color:var(--text2);margin-bottom:10px}
+</style>
+
+<button class="hamburger" onclick="document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.overlay').classList.toggle('open')" aria-label="Toggle navigation">&#9776;</button>
+<div class="overlay" onclick="document.querySelector('.sidebar').classList.remove('open');this.classList.remove('open')"></div>
+
+<div class="layout">
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-hdr">
+    <h1>DLSCM</h1>
+    <p>Training &amp; User Guide v0.1</p>
+  </div>
+  <div class="sidebar-search">
+    <input type="text" id="search" placeholder="Search guide..." oninput="filterSections(this.value)">
+  </div>
+
+  <div class="nav-group"><div class="nav-label">Getting Started</div>
+    <a class="nav-link" href="#overview">Platform Overview</a>
+    <a class="nav-link" href="#login">Login &amp; Authentication</a>
+    <a class="nav-link" href="#navigation">Navigation &amp; Layout</a>
+    <a class="nav-link" href="#roles">Roles &amp; Permissions</a>
+  </div>
+  <div class="nav-group"><div class="nav-label">Phase 1: Foundation</div>
+    <a class="nav-link" href="#dashboard">Dashboard</a>
+    <a class="nav-link" href="#inventory">Inventory Management</a>
+    <a class="nav-link" href="#requests">Supply Requests</a>
+    <a class="nav-link" href="#shipments">Shipment Tracking</a>
+    <a class="nav-link" href="#suppliers">Supplier Registry</a>
+    <a class="nav-link" href="#kits">Kit Assembly</a>
+    <a class="nav-link" href="#donations">Donations</a>
+    <a class="nav-link" href="#cross-org">Cross-Org Visibility</a>
+  </div>
+  <div class="nav-group"><div class="nav-label">Phase 2: Intelligence</div>
+    <a class="nav-link" href="#coordination">3W Coordination</a>
+    <a class="nav-link" href="#intelligence">Crisis Intelligence</a>
+    <a class="nav-link" href="#forecasting">Demand Forecasting</a>
+    <a class="nav-link" href="#routing">Route Optimization</a>
+    <a class="nav-link" href="#reports">Reports &amp; Sitrep</a>
+    <a class="nav-link" href="#compliance">Compliance</a>
+    <a class="nav-link" href="#edxl">EDXL / CAP Exchange</a>
+  </div>
+  <div class="nav-group"><div class="nav-label">Phase 3: Scale</div>
+    <a class="nav-link" href="#prepositioning">Prepositioning</a>
+    <a class="nav-link" href="#marketplace">Surge Marketplace</a>
+    <a class="nav-link" href="#after-action">After-Action Review</a>
+    <a class="nav-link" href="#recovery">Recovery Planning</a>
+  </div>
+  <div class="nav-group"><div class="nav-label">Phase 4: Ecosystem</div>
+    <a class="nav-link" href="#simulation">Simulation Engine</a>
+    <a class="nav-link" href="#risk">Risk Dashboard</a>
+    <a class="nav-link" href="#resilience">Community Toolkit</a>
+  </div>
+  <div class="nav-group"><div class="nav-label">Administration</div>
+    <a class="nav-link" href="#audit">Audit Trail</a>
+    <a class="nav-link" href="#settings">Settings &amp; i18n</a>
+    <a class="nav-link" href="#offline">Offline Mode</a>
+  </div>
+  <div class="nav-group"><div class="nav-label">Reference</div>
+    <a class="nav-link" href="#workflows">Common Workflows</a>
+    <a class="nav-link" href="#ml">AI/ML Features</a>
+    <a class="nav-link" href="#glossary">Glossary</a>
+    <a class="nav-link" href="#faq">FAQ</a>
+  </div>
+</nav>
+
+<!-- ═══════════ MAIN CONTENT ═══════════ -->
+<main class="main">
+
+<!-- ──────── OVERVIEW ──────── -->
+<section id="overview" class="section">
+<h1>DLSCM Platform &mdash; User &amp; Training Guide</h1>
+<p style="color:var(--text2);margin:4px 0 24px">Disaster Logistics &amp; Supply Chain Management &bull; Comprehensive training for all platform users</p>
+
+<h2>Platform Overview</h2>
+<p>The DLSCM Platform is a web-based system designed for humanitarian organizations managing disaster response logistics. It covers the full lifecycle from <strong>preparedness</strong> through <strong>response</strong>, <strong>recovery</strong>, and <strong>resilience building</strong>.</p>
+
+<div class="feature-grid">
+  <div class="feature-card"><h4>25 Modules</h4><p>Covering inventory, shipments, forecasting, risk modeling, coordination, and more</p></div>
+  <div class="feature-card"><h4>5 ML Models</h4><p>Demand forecasting, risk prediction, anomaly detection, disruption analysis</p></div>
+  <div class="feature-card"><h4>6 Languages</h4><p>English, Arabic, French, Spanish, Chinese, Russian with RTL support</p></div>
+  <div class="feature-card"><h4>Offline-First</h4><p>Continue working without internet. Data syncs automatically when reconnected</p></div>
+</div>
+
+<h3>Platform Architecture</h3>
+<div class="workflow-path">
+  <span class="workflow-node">Phase 1: Foundation</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Phase 2: Intelligence</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Phase 3: Scale</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Phase 4: Ecosystem</span>
+</div>
+
+<p><strong>Phase 1</strong> covers core inventory, supply requests, shipments, and the operational dashboard. <strong>Phase 2</strong> adds AI-powered forecasting, route optimization, and crisis intelligence. <strong>Phase 3</strong> introduces prepositioning, the surge marketplace, and recovery planning. <strong>Phase 4</strong> provides simulation, risk modeling, and community resilience tools.</p>
+
+<h3>Supported Organizations</h3>
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>Organization</th><th>Type</th><th>Country</th></tr></thead>
+<tbody>
+<tr><td>IFRC</td><td>NGO</td><td>Switzerland</td></tr>
+<tr><td>MSF Logistics</td><td>NGO</td><td>Belgium</td></tr>
+<tr><td>WFP</td><td>UN Agency</td><td>Italy</td></tr>
+<tr><td>Kenya Red Cross</td><td>NGO</td><td>Kenya</td></tr>
+<tr><td>DHL Disaster Response</td><td>Private</td><td>Germany</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ──────── LOGIN ──────── -->
+<section id="login" class="section">
+<h2>Login &amp; Authentication</h2>
+<p>The platform uses JWT (JSON Web Token) authentication. There are two ways to log in:</p>
+
+<h3>Demo Login (Training &amp; Evaluation)</h3>
+<ol class="steps">
+  <li>Navigate to the platform URL. The login page appears.</li>
+  <li>The <strong>Demo Login</strong> tab is selected by default. You see a list of 8 demo users.</li>
+  <li>Click any user card to instantly log in as that user. Each user has a different role and organization.</li>
+  <li>You are redirected to the Dashboard.</li>
+</ol>
+
+<div class="callout callout-tip"><span class="callout-icon">&#9432;</span><div>For training, try logging in as different roles to see how the platform looks from each perspective. Start with <strong>Amina Osei</strong> (Ops Director, IFRC) for the fullest view.</div></div>
+
+<h3>Credential Login (Production)</h3>
+<ol class="steps">
+  <li>Click the <strong>Sign In</strong> tab.</li>
+  <li>Enter your email address and password.</li>
+  <li>Click <strong>Sign In</strong>. If credentials are valid, you are redirected to the Dashboard.</li>
+  <li>If the login fails, an error message appears below the form. Check your credentials and try again.</li>
+</ol>
+
+<h3>Session Management</h3>
+<ul style="font-size:14px;padding-left:20px;margin:10px 0">
+  <li>Sessions persist across browser refreshes via stored tokens.</li>
+  <li>If your session expires, the platform automatically attempts a token refresh.</li>
+  <li>If the refresh fails, you are redirected to the login page.</li>
+  <li>Click <strong>Log Out</strong> in the top-right corner to end your session.</li>
+</ul>
+</section>
+
+<!-- ──────── NAVIGATION ──────── -->
+<section id="navigation" class="section">
+<h2>Navigation &amp; Layout</h2>
+<p>The platform uses a sidebar-based layout with four main areas:</p>
+
+<h3>Sidebar</h3>
+<p>The left sidebar organizes all modules into four phases:</p>
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>Section</th><th>Modules</th><th>Color</th></tr></thead>
+<tbody>
+<tr><td><strong>Foundation</strong></td><td>Dashboard, Inventory, Supply Requests, Shipments, Suppliers, Kits, Donations, Cross-Org, Prepositioning</td><td>Orange accent</td></tr>
+<tr><td><strong>Intelligence</strong></td><td>3W Coordination, Crisis Intelligence, Forecasting, Routing, Reports, Compliance, EDXL/CAP</td><td>Orange accent</td></tr>
+<tr><td><strong>Scale</strong></td><td>Surge Marketplace, After-Action Review, Recovery Planning</td><td>Orange accent</td></tr>
+<tr><td><strong>Ecosystem</strong></td><td>Simulation, Risk Dashboard, Community Toolkit</td><td>Orange accent</td></tr>
+</tbody>
+</table>
+</div>
+<p>On <strong>tablets</strong>, the sidebar collapses to show only icons. On <strong>mobile</strong>, it becomes a slide-in drawer accessible via the hamburger menu.</p>
+
+<h3>Top Bar</h3>
+<p>Shows the current page title with its phase badge, a notification bell, your name and organization, the offline indicator (when applicable), and the logout button.</p>
+
+<h3>Offline Indicator</h3>
+<p>When your device loses internet connectivity, a pulsing orange chip appears in the top bar showing the number of pending changes. Changes sync automatically when connectivity is restored.</p>
+</section>
+
+<!-- ──────── ROLES ──────── -->
+<section id="roles" class="section">
+<h2>Roles &amp; Permissions</h2>
+<p>The platform defines five user roles. Each role is tagged throughout this guide so you know which features are relevant to you.</p>
+
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>Role</th><th>Tag</th><th>Typical Responsibilities</th></tr></thead>
+<tbody>
+<tr><td><strong>Ops Director</strong></td><td><span class="role-tag role-ops">OPS DIRECTOR</span></td><td>Strategic oversight, dashboard monitoring, report generation, simulation planning, risk assessment</td></tr>
+<tr><td><strong>Field Coordinator</strong></td><td><span class="role-tag role-field">FIELD COORD</span></td><td>Create supply requests, track shipments, coordinate activities (3W), last-mile delivery</td></tr>
+<tr><td><strong>Supply Manager</strong></td><td><span class="role-tag role-supply">SUPPLY MGR</span></td><td>Inventory management, kit assembly, supplier registry, prepositioning, donations intake</td></tr>
+<tr><td><strong>Compliance Officer</strong></td><td><span class="role-tag role-compliance">COMPLIANCE</span></td><td>Compliance dashboard, audit trail, donor reporting, after-action reviews</td></tr>
+<tr><td><strong>Admin</strong></td><td><span class="role-tag role-admin">ADMIN</span></td><td>User management, system settings, all module access</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info"><span class="callout-icon">&#9432;</span><div>In the current version, all authenticated users can access all modules. Role-based access control is planned for a future release.</div></div>
+</section>
+
+<!-- ──────── DASHBOARD ──────── -->
+<section id="dashboard" class="section">
+<h2>Dashboard</h2>
+<p><span class="role-tag role-all">ALL ROLES</span></p>
+<p>The Dashboard is your Common Operating Picture (COP) &mdash; a single view of the entire operation.</p>
+
+<details class="module" open>
+<summary>Stat Cards</summary>
+<div class="module-body">
+<p>Four cards at the top display real-time counts:</p>
+<ul style="padding-left:20px;margin:8px 0">
+  <li><strong>Active Disasters</strong> &mdash; Number of ongoing disaster events. Click to expand a list of each disaster with location and affected population.</li>
+  <li><strong>Pending Requests</strong> &mdash; Supply requests awaiting approval. Click to see individual request details with priority.</li>
+  <li><strong>In-Transit Shipments</strong> &mdash; Shipments currently moving. Click to see tracking IDs, carriers, and ETAs.</li>
+  <li><strong>Active Alerts</strong> &mdash; CAP/EDXL alerts requiring attention. Click to see severity and source.</li>
+</ul>
+</div>
+</details>
+
+<details class="module">
+<summary>Global Operations Map</summary>
+<div class="module-body">
+<p>An interactive Leaflet map showing:</p>
+<ul style="padding-left:20px;margin:8px 0">
+  <li><strong>Red/orange circles</strong> &mdash; Active disaster locations, sized by affected population</li>
+  <li><strong>Blue circles</strong> &mdash; Warehouse locations</li>
+  <li><strong>Green pulsing dots</strong> &mdash; Live GDACS alerts from global monitoring</li>
+</ul>
+<p>Use the <strong>Filters</strong> button (top-right of map) to toggle layers, filter by alert level (Advisory/Watch/Warning), or filter by event type (earthquake, flood, cyclone, volcano).</p>
+</div>
+</details>
+
+<details class="module">
+<summary>Alerts Panel</summary>
+<div class="module-body">
+<p>The right sidebar shows active alerts sorted by severity. Each alert displays:</p>
+<ul style="padding-left:20px;margin:8px 0">
+  <li>Severity badge (extreme, severe, moderate, minor)</li>
+  <li>Alert type and title</li>
+  <li>Source (CAP, EDXL, or manual)</li>
+  <li><strong>Acknowledge</strong> button to mark as reviewed</li>
+</ul>
+</div>
+</details>
+
+<details class="module">
+<summary>Live News Ticker &amp; Live TV</summary>
+<div class="module-body">
+<p>At the bottom of the dashboard:</p>
+<ul style="padding-left:20px;margin:8px 0">
+  <li><strong>News Ticker</strong> &mdash; Scrolling headlines from ReliefWeb, ICRC, and GDACS feeds. Toggle individual feeds on/off. Pause/resume with the button.</li>
+  <li><strong>Live TV</strong> &mdash; Click the TV icon to open a modal with 6 international news channels for situational awareness.</li>
+</ul>
+</div>
+</details>
+</section>
+
+<!-- ──────── INVENTORY ──────── -->
+<section id="inventory" class="section">
+<h2>Inventory Management</h2>
+<p><span class="role-tag role-supply">SUPPLY MGR</span> <span class="role-tag role-field">FIELD COORD</span></p>
+<p>Manage stock across multiple warehouses. Track items by category, lot number, and expiry date.</p>
+
+<details class="module" open>
+<summary>Viewing Warehouse Stock</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Navigate to <strong>Inventory</strong> in the sidebar.</li>
+  <li>The left panel shows all warehouses with their names, locations, and stock counts.</li>
+  <li>Click a warehouse to load its stock in the main table.</li>
+  <li>Use the <strong>Category</strong> dropdown to filter by: food, water, medical, shelter, hygiene, or NFI.</li>
+</ol>
+</div>
+</details>
+
+<details class="module">
+<summary>Editing Stock Quantities</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>In the stock table, find the item you want to update.</li>
+  <li>Click on the <strong>quantity number</strong> &mdash; it becomes an editable field.</li>
+  <li>Type the new quantity and press <kbd>Enter</kbd> or click away to save.</li>
+  <li>The change is saved immediately to the server and logged in the audit trail.</li>
+</ol>
+<div class="callout callout-warn"><span class="callout-icon">&#9888;</span><div>Quantity changes are permanent and audited. Ensure the new value is correct before confirming. There is no undo.</div></div>
+</div>
+</details>
+
+<details class="module">
+<summary>Adding New Items</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Click the <strong>Add Item</strong> button at the top-right of the stock table.</li>
+  <li>Fill in the modal form: item name, SKU (unique identifier), category, unit of measure, and minimum stock level.</li>
+  <li>Click <strong>Save</strong> to create the item in the catalog.</li>
+  <li>The item appears in the stock table with an initial quantity of 0.</li>
+</ol>
+</div>
+</details>
+
+<h3>Stock Data Fields</h3>
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>Field</th><th>Description</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Item Name</td><td>Descriptive name of the supply item</td><td>High-Energy Biscuits (500g)</td></tr>
+<tr><td>SKU</td><td>Unique stock-keeping unit identifier</td><td>FOOD-HEB-500</td></tr>
+<tr><td>Category</td><td>One of 6 humanitarian categories</td><td>food, water, medical, shelter, hygiene, nfi</td></tr>
+<tr><td>Quantity</td><td>Current units on hand</td><td>2,450</td></tr>
+<tr><td>Unit</td><td>Unit of measure</td><td>cartons, liters, kits, rolls</td></tr>
+<tr><td>Lot Number</td><td>Batch identifier for traceability</td><td>LOT-2026-A1</td></tr>
+<tr><td>Expiry Date</td><td>Date the item expires</td><td>2027-03-15</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ──────── SUPPLY REQUESTS ──────── -->
+<section id="requests" class="section">
+<h2>Supply Requests</h2>
+<p><span class="role-tag role-field">FIELD COORD</span> <span class="role-tag role-ops">OPS DIRECTOR</span></p>
+<p>Create and track requests for supplies. Each request is linked to a specific disaster and contains one or more items.</p>
+
+<h3>Request Lifecycle</h3>
+<div class="workflow-path">
+  <span class="workflow-node">Pending</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Approved</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Sourcing</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Dispatched</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Delivered</span>
+</div>
+
+<details class="module" open>
+<summary>Creating a New Request</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Navigate to <strong>Supply Requests</strong> and click <strong>New Request</strong>.</li>
+  <li>Fill in the form:<br>&bull; <strong>Title</strong> &mdash; Brief description (e.g., "Emergency medical supplies for Turkana")<br>&bull; <strong>Priority</strong> &mdash; Critical / High / Medium / Low<br>&bull; <strong>Disaster</strong> &mdash; Select the associated disaster event<br>&bull; <strong>Destination</strong> &mdash; Name, latitude, and longitude of the delivery point</li>
+  <li>Add items to the request: select from the item catalog and specify quantities needed.</li>
+  <li>Add optional notes for the logistics team.</li>
+  <li>Click <strong>Submit</strong>. The request enters <em>Pending</em> status.</li>
+</ol>
+<div class="callout callout-tip"><span class="callout-icon">&#9432;</span><div>If you are <strong>offline</strong>, the request is saved locally and synced when connectivity returns. A chip in the top bar shows the pending sync count.</div></div>
+</div>
+</details>
+
+<details class="module">
+<summary>Managing Request Status</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Filter requests by status using the tabs: All, Pending, Approved, Sourcing, Dispatched, Delivered.</li>
+  <li>Click a row to expand and see the request's notes and item list.</li>
+  <li>Use the status dropdown in each row to advance the request through its lifecycle.</li>
+</ol>
+</div>
+</details>
+</section>
+
+<!-- ──────── SHIPMENTS ──────── -->
+<section id="shipments" class="section">
+<h2>Shipment Tracking</h2>
+<p><span class="role-tag role-supply">SUPPLY MGR</span> <span class="role-tag role-field">FIELD COORD</span></p>
+<p>Track shipments from warehouse to destination with multi-modal transport support.</p>
+
+<details class="module" open>
+<summary>Creating a Shipment</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Navigate to <strong>Shipments</strong> and click <strong>New Shipment</strong>.</li>
+  <li>Select the associated disaster, origin warehouse, destination, carrier name, and transport mode (road, air, or sea).</li>
+  <li>Add an items description.</li>
+  <li>Click <strong>Create</strong>. A unique tracking ID (e.g., SHP-20260818-XXXX) is generated.</li>
+</ol>
+</div>
+</details>
+
+<details class="module">
+<summary>Tracking Map</summary>
+<div class="module-body">
+<p>The top of the Shipments page shows a Leaflet map with:</p>
+<ul style="padding-left:20px;margin:8px 0">
+  <li>Blue markers for origin warehouses</li>
+  <li>Orange markers for destinations</li>
+  <li>Dashed polylines showing route paths</li>
+</ul>
+<p>The table below lists all shipments with tracking ID, status, transport mode, carrier, ETA, and departure date.</p>
+</div>
+</details>
+
+<h3>Shipment Statuses</h3>
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><strong>Preparing</strong></td><td>Being packed at the origin warehouse</td></tr>
+<tr><td><strong>In Transit</strong></td><td>Left the warehouse, en route to destination</td></tr>
+<tr><td><strong>Customs Hold</strong></td><td>Held at a border crossing for customs clearance</td></tr>
+<tr><td><strong>Delivered</strong></td><td>Arrived at the final destination</td></tr>
+<tr><td><strong>Cancelled</strong></td><td>Shipment was cancelled</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Multi-Leg Shipments</h3>
+<p>Complex deliveries may use multiple transport modes (e.g., sea from Dubai to Mombasa, then road to Turkana). Each leg tracks its own distance, duration, mode, and carrier.</p>
+</section>
+
+<!-- ──────── SUPPLIERS ──────── -->
+<section id="suppliers" class="section">
+<h2>Supplier Registry</h2>
+<p><span class="role-tag role-supply">SUPPLY MGR</span></p>
+<p>Manage your pre-qualified supplier base. The platform includes ML-powered disruption prediction to flag high-risk suppliers.</p>
+
+<details class="module" open>
+<summary>Managing Suppliers</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Navigate to <strong>Suppliers</strong> in the sidebar.</li>
+  <li>View the supplier table with name, category, country, lead time, quality rating (1-5 stars), and pre-qualification status.</li>
+  <li>Filter by category using the dropdown (food, medical, shelter, logistics, water, NFI, general).</li>
+  <li>Click <strong>Add Supplier</strong> to register a new supplier with their details.</li>
+  <li>Click a supplier row to edit their information.</li>
+</ol>
+</div>
+</details>
+
+<details class="module">
+<summary>Disruption Prediction</summary>
+<div class="module-body">
+<p>The platform uses an Isolation Forest + Gradient Boosting ML model to predict which suppliers are at risk of disruption. The model analyzes:</p>
+<ul style="padding-left:20px;margin:8px 0">
+  <li>Lead time variability</li>
+  <li>Quality rating trends</li>
+  <li>Capacity utilization</li>
+  <li>Defect rates</li>
+  <li>Price volatility</li>
+</ul>
+<p>Disruption predictions are automatically fed into the <strong>Demand Forecasting</strong> and <strong>Prepositioning</strong> modules via cross-model intelligence.</p>
+</div>
+</details>
+</section>
+
+<!-- ──────── KITS ──────── -->
+<section id="kits" class="section">
+<h2>Kit Assembly</h2>
+<p><span class="role-tag role-supply">SUPPLY MGR</span></p>
+<p>Define standard relief kits by combining items from the catalog. Kits can be quickly deployed during responses.</p>
+
+<details class="module" open>
+<summary>Creating a Kit</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Navigate to <strong>Kits</strong> in the sidebar.</li>
+  <li>View existing kits as cards showing name, category, description, and component count.</li>
+  <li>Click <strong>Create Kit</strong> and fill in: name, category, and description.</li>
+  <li>Add components: select items from the catalog dropdown and set quantities for each.</li>
+  <li>Click <strong>Save</strong> to register the kit.</li>
+</ol>
+</div>
+</details>
+
+<h3>Pre-defined Kits</h3>
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>Kit</th><th>Category</th><th>Components</th></tr></thead>
+<tbody>
+<tr><td>Family Hygiene Kit</td><td>Hygiene</td><td>Soap bars, water purification tablets, hygiene supplies</td></tr>
+<tr><td>Basic Shelter Kit</td><td>Shelter</td><td>Tarpaulins, rope, blankets</td></tr>
+<tr><td>Emergency Medical Kit</td><td>Medical</td><td>First aid kits, ORS, antibiotics</td></tr>
+<tr><td>NFI Starter Kit</td><td>NFI</td><td>Kitchen sets, jerry cans, sleeping mats</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ──────── DONATIONS ──────── -->
+<section id="donations" class="section">
+<h2>Donations In-Kind</h2>
+<p><span class="role-tag role-supply">SUPPLY MGR</span></p>
+
+<h3>Recording a Donation</h3>
+<ol class="steps">
+  <li>Navigate to <strong>Donations</strong> and click the form toggle.</li>
+  <li>Enter: donor name, contact info, category, quantity, unit, items description, and notes.</li>
+  <li>Submit. The donation enters <em>Received</em> status.</li>
+</ol>
+
+<h3>Quality Assessment Workflow</h3>
+<div class="workflow-path">
+  <span class="workflow-node">Received</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Assessed</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Stored</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Distributed</span>
+</div>
+<p>Or: Received &#8594; Assessed &#8594; <strong>Rejected</strong> (if quality is unacceptable).</p>
+<p>Quality statuses: <em>pending_assessment</em>, <em>acceptable</em>, <em>requires_sorting</em>, <em>rejected</em>.</p>
+</section>
+
+<!-- ──────── CROSS-ORG ──────── -->
+<section id="cross-org" class="section">
+<h2>Cross-Organization Visibility</h2>
+<p><span class="role-tag role-ops">OPS DIRECTOR</span> <span class="role-tag role-supply">SUPPLY MGR</span></p>
+<p>View federated stock across all participating organizations. This enables resource sharing and prevents duplicate procurement.</p>
+<ol class="steps">
+  <li>Navigate to <strong>Cross-Org Visibility</strong>.</li>
+  <li>Three summary cards show: total organizations, total items, and total quantity across all warehouses.</li>
+  <li>Filter by organization or category to find specific stock.</li>
+  <li>The table shows each item with its owning organization, warehouse, and stock levels.</li>
+</ol>
+</section>
+
+<!-- ──────── COORDINATION ──────── -->
+<section id="coordination" class="section">
+<h2>3W Coordination</h2>
+<p><span class="role-tag role-field">FIELD COORD</span> <span class="role-tag role-ops">OPS DIRECTOR</span></p>
+<p>The Who-What-Where (3W) matrix tracks which organizations are doing what activities and where. It prevents duplication and identifies coverage gaps.</p>
+
+<details class="module" open>
+<summary>Using the 3W View</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Navigate to <strong>3W Coordination</strong>.</li>
+  <li>The map shows color-coded markers for each activity type (food distribution, water/sanitation, medical, shelter, logistics, protection).</li>
+  <li>The table below lists all coordination entries with organization, activity, location, beneficiaries, and status.</li>
+  <li>Filter by disaster or activity type using the dropdowns.</li>
+  <li>Click <strong>Add Activity</strong> to register a new coordination entry with disaster, organization, activity type, location, and beneficiary count.</li>
+</ol>
+</div>
+</details>
+
+<h3>Activity Types</h3>
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>Activity</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>Food Distribution</td><td>General food rations and supplementary feeding programs</td></tr>
+<tr><td>Water &amp; Sanitation</td><td>WASH services including water trucking, latrine construction, hygiene promotion</td></tr>
+<tr><td>Medical Services</td><td>Clinical care, mobile health teams, disease surveillance</td></tr>
+<tr><td>Shelter Provision</td><td>Emergency shelters, tarpaulins, transitional housing</td></tr>
+<tr><td>Logistics</td><td>Transport, warehousing, and distribution support</td></tr>
+<tr><td>Protection</td><td>Child protection, GBV response, psychosocial support</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ──────── INTELLIGENCE ──────── -->
+<section id="intelligence" class="section">
+<h2>Crisis Intelligence</h2>
+<p><span class="role-tag role-ops">OPS DIRECTOR</span></p>
+<p>Aggregated intelligence from multiple humanitarian information sources.</p>
+
+<details class="module" open>
+<summary>Using the Intelligence View</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Navigate to <strong>Crisis Intelligence</strong>.</li>
+  <li>Select a crisis from the dropdown to view intelligence specific to that event.</li>
+  <li>Set the timeframe (30, 90, 180, or 365 days) and category filter.</li>
+  <li>Browse intelligence items showing: category badge, source, alert level, date, title, summary, and relevance score.</li>
+  <li>Click source names or category dots in the sidebar to filter the feed.</li>
+</ol>
+</div>
+</details>
+
+<h3>Intelligence Sources</h3>
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>Source</th><th>Type</th><th>Content</th></tr></thead>
+<tbody>
+<tr><td>ReliefWeb</td><td>Humanitarian reports</td><td>Situation reports, assessments, maps, infographics</td></tr>
+<tr><td>GDACS</td><td>Global alerts</td><td>Earthquake, flood, cyclone, volcano alerts with severity scoring</td></tr>
+<tr><td>ICRC</td><td>Red Cross/Crescent</td><td>Operation updates, emergency appeals, field reports</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ──────── FORECASTING ──────── -->
+<section id="forecasting" class="section">
+<h2>Demand Forecasting</h2>
+<p><span class="role-tag role-ops">OPS DIRECTOR</span> <span class="role-tag role-supply">SUPPLY MGR</span></p>
+<p>AI-powered demand prediction using Gradient Boosting with time-series decomposition. The model forecasts daily supply needs across 6 categories.</p>
+
+<details class="module" open>
+<summary>Generating a Forecast</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Navigate to <strong>Demand Forecasting</strong>.</li>
+  <li>Select a disaster from the dropdown.</li>
+  <li>Choose a forecast horizon: <strong>7 days</strong> (short-term), <strong>14 days</strong> (medium), or <strong>30 days</strong> (planning).</li>
+  <li>The system runs the ML model and displays results within a few seconds.</li>
+  <li>View summary cards for each category (food, water, medical, shelter, hygiene, NFI) showing total predicted demand.</li>
+  <li>The line chart below shows daily demand with trend visualization.</li>
+</ol>
+</div>
+</details>
+
+<details class="module">
+<summary>Understanding the Model</summary>
+<div class="module-body">
+<p>The forecasting engine uses several advanced techniques:</p>
+<ul style="padding-left:20px;margin:8px 0">
+  <li><strong>GradientBoostingRegressor</strong> &mdash; 80 estimators trained on synthesized scenario data matching the disaster type and severity.</li>
+  <li><strong>STL Decomposition</strong> &mdash; Separates the forecast into trend, seasonal (7-day cycle), and residual components. Seasonal strength and trend direction are reported.</li>
+  <li><strong>Cross-Model Intelligence</strong> &mdash; Risk scores from the Risk Dashboard and supplier disruption predictions are automatically fed as input features, so forecasts adjust when risk conditions change.</li>
+  <li><strong>Confidence Intervals</strong> &mdash; Upper and lower bounds (95%) derived from residual standard deviation, widening as the forecast horizon extends.</li>
+</ul>
+<div class="callout callout-info"><span class="callout-icon">&#9432;</span><div>The response includes <code>feature_importances</code> showing which inputs most influence the prediction, and <code>cross_model_inputs</code> showing the risk_multiplier and supply_disruption_risk values used.</div></div>
+</div>
+</details>
+</section>
+
+<!-- ──────── ROUTING ──────── -->
+<section id="routing" class="section">
+<h2>Route Optimization</h2>
+<p><span class="role-tag role-supply">SUPPLY MGR</span> <span class="role-tag role-field">FIELD COORD</span></p>
+
+<ol class="steps">
+  <li>Navigate to <strong>Route Optimization</strong>.</li>
+  <li>Select an <strong>origin warehouse</strong> from the dropdown.</li>
+  <li>Select a <strong>destination disaster</strong> location.</li>
+  <li>Choose the transport mode: <strong>Road</strong>, <strong>Air</strong>, or <strong>Sea</strong>.</li>
+  <li>Click <strong>Optimize Route</strong>.</li>
+  <li>The map displays the optimized route with origin/destination markers and route polylines.</li>
+  <li>A summary panel shows total distance (km), estimated duration, and transport mode.</li>
+  <li>Route legs are listed with individual segment details.</li>
+</ol>
+
+<div class="callout callout-tip"><span class="callout-icon">&#9432;</span><div>The optimizer uses OSRM (Open Source Routing Machine) for road routes when available, falling back to great-circle distance calculation. Air and sea routes always use the distance-based estimator.</div></div>
+</section>
+
+<!-- ──────── REPORTS ──────── -->
+<section id="reports" class="section">
+<h2>Reports &amp; Sitrep Parsing</h2>
+<p><span class="role-tag role-compliance">COMPLIANCE</span> <span class="role-tag role-ops">OPS DIRECTOR</span></p>
+
+<h3>Donor Reports</h3>
+<ol class="steps">
+  <li>Navigate to <strong>Reports</strong> &#8594; <strong>Donor Reports</strong> tab.</li>
+  <li>Select a disaster, reporting period (start and end dates), and template.</li>
+  <li>Available templates: <strong>Generic</strong>, <strong>ECHO</strong> (EU), <strong>USAID</strong> (US), <strong>FCDO</strong> (UK).</li>
+  <li>Click <strong>Generate Report</strong>.</li>
+  <li>The report renders with: executive summary, key metrics grid, expenditure breakdown, beneficiary reach, and recommendations.</li>
+</ol>
+
+<h3>Sitrep Parser</h3>
+<ol class="steps">
+  <li>Switch to the <strong>Sitrep Parser</strong> tab.</li>
+  <li>Paste situation report text into the text area.</li>
+  <li>Click <strong>Parse Sitrep</strong>.</li>
+  <li>The system extracts: disaster type, urgency level, affected population, identified needs, and a structured summary.</li>
+</ol>
+</section>
+
+<!-- ──────── COMPLIANCE ──────── -->
+<section id="compliance" class="section">
+<h2>Compliance Dashboard</h2>
+<p><span class="role-tag role-compliance">COMPLIANCE</span></p>
+<p>Monitor adherence to Sphere Standards and operational health metrics.</p>
+
+<h3>What the Dashboard Shows</h3>
+<ul style="padding-left:20px;margin:8px 0;font-size:14px">
+  <li><strong>Overall Compliance Score</strong> &mdash; Color-coded: green (&gt;70), yellow (40-70), red (&lt;40)</li>
+  <li><strong>Sphere Standards</strong> &mdash; Cards for each standard (water, food, shelter, health) showing current vs. target values</li>
+  <li><strong>Inventory Health</strong> &mdash; Total items, items expiring in 30/90 days, stockout risk count</li>
+  <li><strong>Operational Metrics</strong> &mdash; Average fulfillment days, overdue requests, delivery success rate</li>
+</ul>
+</section>
+
+<!-- ──────── EDXL ──────── -->
+<section id="edxl" class="section">
+<h2>EDXL / CAP Exchange</h2>
+<p><span class="role-tag role-ops">OPS DIRECTOR</span></p>
+<p>Generate and parse standard emergency messaging formats (CAP alerts and EDXL-DE envelopes).</p>
+
+<h3>Three Tabs</h3>
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>Tab</th><th>Function</th><th>Inputs</th></tr></thead>
+<tbody>
+<tr><td><strong>Generate CAP</strong></td><td>Create a new Common Alerting Protocol message</td><td>Title, description, severity, urgency, latitude, longitude</td></tr>
+<tr><td><strong>Wrap EDXL-DE</strong></td><td>Wrap content XML in an EDXL Distribution Element envelope</td><td>Content XML, distribution type, keywords</td></tr>
+<tr><td><strong>Parse Message</strong></td><td>Parse an incoming EDXL/CAP XML message into structured fields</td><td>Raw XML text</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ──────── PREPOSITIONING ──────── -->
+<section id="prepositioning" class="section">
+<h2>Prepositioning Optimization</h2>
+<p><span class="role-tag role-ops">OPS DIRECTOR</span> <span class="role-tag role-supply">SUPPLY MGR</span></p>
+<p>AI-optimized recommendations for where to preposition emergency supplies, based on stochastic Monte Carlo simulation of 200 disaster scenarios.</p>
+
+<details class="module" open>
+<summary>Reading Recommendations</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Navigate to <strong>Prepositioning</strong> in the sidebar.</li>
+  <li>The system automatically analyzes all warehouses against 8 global risk zones.</li>
+  <li>The <strong>coverage map</strong> shows warehouse locations (blue) and risk zones (red/yellow).</li>
+  <li>Below the map, <strong>recommendation cards</strong> are ranked by coverage score.</li>
+  <li>Each card shows: rank, warehouse name, location, coverage score, and zones covered.</li>
+  <li>Click <strong>Expand</strong> to see detailed stock suggestions (category, priority, reason), current stock by category, and the risk zone coverage table.</li>
+</ol>
+</div>
+</details>
+
+<details class="module">
+<summary>Understanding the Optimization</summary>
+<div class="module-body">
+<p>Each recommendation includes optimization metadata:</p>
+<ul style="padding-left:20px;margin:8px 0">
+  <li><strong>Method</strong> &mdash; Stochastic scenario-based optimization</li>
+  <li><strong>Expected Value</strong> &mdash; Average coverage across 200 simulated scenarios</li>
+  <li><strong>CVaR 5%</strong> &mdash; Conditional Value at Risk: expected coverage in the worst 5% of scenarios</li>
+  <li><strong>Robustness Score</strong> &mdash; CVaR / Expected Value &times; 100. Higher means more consistent performance.</li>
+  <li><strong>Supply Chain Risk</strong> &mdash; Factor derived from supplier disruption predictions. Values &gt;1.0 indicate elevated supply risk.</li>
+</ul>
+</div>
+</details>
+</section>
+
+<!-- ──────── MARKETPLACE ──────── -->
+<section id="marketplace" class="section">
+<h2>Surge Marketplace</h2>
+<p><span class="role-tag role-ops">OPS DIRECTOR</span> <span class="role-tag role-supply">SUPPLY MGR</span></p>
+<p>Find and book temporary capacity from other organizations during surge events.</p>
+
+<h3>Listing Types</h3>
+<div class="feature-grid">
+  <div class="feature-card"><h4>Warehouse Space</h4><p>Temporary storage capacity in m&sup3;</p></div>
+  <div class="feature-card"><h4>Transport</h4><p>Vehicles, aircraft, or vessels with capacity in tonnes</p></div>
+  <div class="feature-card"><h4>Personnel</h4><p>Trained logistics staff available for deployment</p></div>
+</div>
+
+<ol class="steps">
+  <li>Navigate to <strong>Surge Marketplace</strong>.</li>
+  <li>Filter listings by type (All, Warehouse, Transport, Personnel).</li>
+  <li>Click <strong>Find Matches</strong> on a listing to see compatibility scores with your needs.</li>
+  <li>Click <strong>Book</strong> to reserve capacity. Fill in your organization, quantity needed, and notes.</li>
+  <li>View your bookings in the <strong>My Bookings</strong> section below. Cancel if no longer needed.</li>
+</ol>
+</section>
+
+<!-- ──────── AFTER-ACTION ──────── -->
+<section id="after-action" class="section">
+<h2>After-Action Review</h2>
+<p><span class="role-tag role-compliance">COMPLIANCE</span> <span class="role-tag role-ops">OPS DIRECTOR</span></p>
+
+<ol class="steps">
+  <li>Navigate to <strong>After-Action Review</strong>.</li>
+  <li>Select a disaster from the dropdown.</li>
+  <li>View existing reviews as cards with overall score (color-coded /100), response time, cost per beneficiary, stockout events, lessons learned, and recommendations.</li>
+  <li>Click <strong>New Review</strong> to create a post-response analysis with all metrics and narrative fields.</li>
+</ol>
+</section>
+
+<!-- ──────── RECOVERY ──────── -->
+<section id="recovery" class="section">
+<h2>Recovery Planning</h2>
+<p><span class="role-tag role-ops">OPS DIRECTOR</span></p>
+<p>Plan and track the post-disaster recovery lifecycle across 5 phases.</p>
+
+<h3>Recovery Phases</h3>
+<div class="workflow-path" style="flex-wrap:wrap">
+  <span class="workflow-node">1. Assessment</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">2. Immediate Stabilization</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">3. Short-Term Recovery</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">4. Long-Term Reconstruction</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">5. Resilience Building</span>
+</div>
+
+<details class="module" open>
+<summary>Creating a Recovery Plan</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>Navigate to <strong>Recovery Planning</strong> and filter by disaster.</li>
+  <li>Click <strong>Create Recovery Plan</strong>.</li>
+  <li>Fill in: disaster, title, description, and target completion date.</li>
+  <li>The plan is created with all 5 phases in <em>Pending</em> status.</li>
+  <li>Click any phase to update its status (pending, in_progress, completed, blocked) and add notes.</li>
+  <li>Add procurement items to track recovery supply needs: item name, category, quantity, unit cost, and supplier.</li>
+</ol>
+</div>
+</details>
+</section>
+
+<!-- ──────── SIMULATION ──────── -->
+<section id="simulation" class="section">
+<h2>Simulation Engine</h2>
+<p><span class="role-tag role-ops">OPS DIRECTOR</span></p>
+<p>Run what-if scenarios to test preparedness and estimate response requirements.</p>
+
+<ol class="steps">
+  <li>Navigate to <strong>Simulation</strong>.</li>
+  <li>Configure the scenario: name, disaster type (drought/flood/earthquake/cyclone/conflict/epidemic), severity (minor/moderate/major/catastrophic), country, coordinates, and affected population.</li>
+  <li>Click <strong>Run Simulation</strong>.</li>
+  <li>Results show: estimated response time, nearest warehouse, readiness score, estimated cost, damage assessment breakdown, and demand forecast per category.</li>
+  <li>Saved scenarios appear in the table below for comparison.</li>
+</ol>
+
+<div class="callout callout-tip"><span class="callout-icon">&#9432;</span><div>Try running the same disaster at different severity levels to understand how response requirements scale. This helps with contingency planning and budget preparation.</div></div>
+</section>
+
+<!-- ──────── RISK ──────── -->
+<section id="risk" class="section">
+<h2>Risk Modeling Dashboard</h2>
+<p><span class="role-tag role-ops">OPS DIRECTOR</span></p>
+<p>Predictive risk assessment across 8 global regions using a RandomForest ML model.</p>
+
+<h3>Risk Regions</h3>
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>Region</th><th>Hazard Types Assessed</th></tr></thead>
+<tbody>
+<tr><td>Horn of Africa</td><td>Seismic, Hydrological, Climate, Conflict</td></tr>
+<tr><td>Sahel</td><td>Climate, Conflict, Hydrological</td></tr>
+<tr><td>South Asia</td><td>Seismic, Hydrological, Climate</td></tr>
+<tr><td>Southeast Asia</td><td>Seismic, Hydrological, Climate</td></tr>
+<tr><td>Central America</td><td>Seismic, Hydrological, Climate</td></tr>
+<tr><td>Middle East</td><td>Conflict, Climate, Seismic</td></tr>
+<tr><td>Pacific Islands</td><td>Hydrological, Climate, Seismic</td></tr>
+<tr><td>Southern Africa</td><td>Climate, Hydrological</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Each region card shows: composite risk score, risk level (low/medium/high/critical), dominant hazard, and expandable hazard breakdown bar charts.</p>
+</section>
+
+<!-- ──────── RESILIENCE ──────── -->
+<section id="resilience" class="section">
+<h2>Community Resilience Toolkit</h2>
+<p><span class="role-tag role-all">ALL ROLES</span></p>
+<p>A preparedness checklist for local communities and organizations. Five sections cover emergency essentials:</p>
+
+<div class="feature-grid">
+  <div class="feature-card"><h4>Emergency Contacts</h4><p>Local emergency numbers, hospital locations, evacuation assembly points</p></div>
+  <div class="feature-card"><h4>Evacuation Plan</h4><p>Route planning, rally points, transportation arrangements</p></div>
+  <div class="feature-card"><h4>Supply Inventory</h4><p>72-hour kit, water reserves, first aid, important documents</p></div>
+  <div class="feature-card"><h4>Communication Plan</h4><p>Out-of-area contacts, family meeting points, radio/battery backup</p></div>
+  <div class="feature-card"><h4>First Aid Knowledge</h4><p>CPR certification, wound care, emergency medications, training dates</p></div>
+</div>
+
+<p>Check off items as you complete them. Progress is tracked with an overall percentage bar. Data is saved in your browser and persists between sessions.</p>
+</section>
+
+<!-- ──────── AUDIT ──────── -->
+<section id="audit" class="section">
+<h2>Audit Trail</h2>
+<p><span class="role-tag role-compliance">COMPLIANCE</span> <span class="role-tag role-admin">ADMIN</span></p>
+<p>Every create, update, and delete action across the platform is automatically captured with the user, timestamp, IP address, and affected resource.</p>
+
+<ol class="steps">
+  <li>Navigate to <strong>Audit Trail</strong>.</li>
+  <li>The table shows: timestamp (with relative time), action type (create/update/delete), resource type, resource ID, user email, and details.</li>
+  <li>Filter by resource type using the dropdown: supply_request, stock, shipment, supplier, donation, kit, warehouse, disaster, user.</li>
+</ol>
+
+<div class="callout callout-info"><span class="callout-icon">&#9432;</span><div>The audit trail is append-only and captures all write operations automatically via middleware. No configuration is needed. Password fields are automatically redacted from audit details.</div></div>
+</section>
+
+<!-- ──────── SETTINGS ──────── -->
+<section id="settings" class="section">
+<h2>Settings &amp; Language</h2>
+<p><span class="role-tag role-all">ALL ROLES</span></p>
+
+<h3>Profile</h3>
+<p>Displays your name, email, role, and organization. These are set by your administrator.</p>
+
+<h3>Preferences</h3>
+<ul style="padding-left:20px;margin:8px 0;font-size:14px">
+  <li><strong>Notifications</strong> &mdash; Toggle push notification alerts on/off</li>
+  <li><strong>Dark Mode</strong> &mdash; Toggle between light and dark theme</li>
+  <li><strong>Language</strong> &mdash; Select from 6 UN languages: English, Fran&ccedil;ais, Espa&ntilde;ol, &#1575;&#1604;&#1593;&#1585;&#1576;&#1610;&#1577; (Arabic), &#20013;&#25991; (Chinese), &#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081; (Russian)</li>
+</ul>
+
+<div class="callout callout-tip"><span class="callout-icon">&#9432;</span><div>Selecting Arabic automatically switches the interface to right-to-left (RTL) layout. Navigation, sidebar, and text alignment all adapt.</div></div>
+</section>
+
+<!-- ──────── OFFLINE ──────── -->
+<section id="offline" class="section">
+<h2>Offline Mode</h2>
+<p><span class="role-tag role-all">ALL ROLES</span></p>
+<p>The platform is designed for field conditions where internet connectivity may be intermittent.</p>
+
+<h3>How Offline Mode Works</h3>
+<ol class="steps">
+  <li>When your device loses connectivity, an orange <strong>Offline</strong> chip appears in the top bar.</li>
+  <li>You can continue creating supply requests &mdash; they are saved to IndexedDB (local browser storage).</li>
+  <li>Pending changes show a count badge on the offline chip (e.g., "3 pending").</li>
+  <li>When connectivity returns, the platform automatically syncs all pending changes to the server.</li>
+  <li>Conflicts (if another user modified the same record) are resolved using CRDT (Conflict-free Replicated Data Types) &mdash; the last write wins based on hybrid logical clock timestamps.</li>
+</ol>
+
+<div class="callout callout-warn"><span class="callout-icon">&#9888;</span><div>Offline mode currently supports <strong>supply requests</strong> and <strong>CRDT-based data</strong> only. Other modules (inventory edits, shipment updates) require connectivity.</div></div>
+</section>
+
+<!-- ──────── COMMON WORKFLOWS ──────── -->
+<section id="workflows" class="section">
+<h2>Common Workflows</h2>
+
+<details class="module" open>
+<summary>Workflow: Emergency Supply Request (End-to-End)</summary>
+<div class="module-body">
+<ol class="steps">
+  <li><strong>Field Coordinator</strong> creates a new supply request from the field, selecting the disaster, priority (Critical), destination, and needed items.</li>
+  <li><strong>Ops Director</strong> reviews the request on the Dashboard (Pending Requests stat card) and changes status to <em>Approved</em>.</li>
+  <li><strong>Supply Manager</strong> checks inventory across warehouses (Cross-Org Visibility) to identify the nearest stock.</li>
+  <li><strong>Supply Manager</strong> uses Route Optimization to determine the best delivery route and transport mode.</li>
+  <li><strong>Supply Manager</strong> creates a shipment linked to the request, selecting the origin warehouse and carrier.</li>
+  <li><strong>Supply Manager</strong> updates stock quantities in Inventory (deducting shipped amounts).</li>
+  <li><strong>Field Coordinator</strong> tracks the shipment on the Shipments map and updates status to <em>Delivered</em> upon arrival.</li>
+  <li><strong>Compliance Officer</strong> verifies the audit trail and generates a donor report for the response period.</li>
+</ol>
+</div>
+</details>
+
+<details class="module">
+<summary>Workflow: Disaster Preparedness Planning</summary>
+<div class="module-body">
+<ol class="steps">
+  <li><strong>Ops Director</strong> reviews the Risk Dashboard to identify high-risk regions.</li>
+  <li><strong>Ops Director</strong> runs simulations for potential disaster scenarios in those regions.</li>
+  <li><strong>Supply Manager</strong> reviews Prepositioning recommendations to determine optimal warehouse stock placement.</li>
+  <li><strong>Supply Manager</strong> reviews the Supplier Registry and checks disruption predictions for critical suppliers.</li>
+  <li><strong>Ops Director</strong> uses Demand Forecasting on historical disasters of similar type/severity to estimate supply needs.</li>
+  <li><strong>Supply Manager</strong> adjusts inventory levels based on forecasts and prepositioning recommendations.</li>
+  <li><strong>All roles</strong> complete the Community Resilience Toolkit checklist items.</li>
+</ol>
+</div>
+</details>
+
+<details class="module">
+<summary>Workflow: Post-Disaster Recovery</summary>
+<div class="module-body">
+<ol class="steps">
+  <li><strong>Ops Director</strong> creates a Recovery Plan linked to the disaster, setting a target completion date.</li>
+  <li><strong>Ops Director</strong> advances through the 5 phases: Assessment &#8594; Stabilization &#8594; Short-Term &#8594; Long-Term &#8594; Resilience.</li>
+  <li><strong>Supply Manager</strong> adds procurement items to the recovery plan with quantities, costs, and supplier assignments.</li>
+  <li><strong>Compliance Officer</strong> creates an After-Action Review capturing: response time, cost per beneficiary, stockout events, lessons learned.</li>
+  <li><strong>Compliance Officer</strong> generates donor reports for the full response period.</li>
+  <li><strong>Ops Director</strong> reviews lessons and feeds them into simulation scenarios for future preparedness.</li>
+</ol>
+</div>
+</details>
+
+<details class="module">
+<summary>Workflow: Surge Capacity Activation</summary>
+<div class="module-body">
+<ol class="steps">
+  <li>A sudden disaster exceeds your organization's capacity.</li>
+  <li><strong>Ops Director</strong> navigates to Surge Marketplace and filters by needed capacity type (warehouse, transport, or personnel).</li>
+  <li>Click <strong>Find Matches</strong> to see which listings best fit your needs.</li>
+  <li>Click <strong>Book</strong> on the best match, specifying quantity and notes.</li>
+  <li>The listing owner is notified and can confirm or decline.</li>
+  <li>Track all bookings in the <strong>My Bookings</strong> section. Cancel when no longer needed.</li>
+</ol>
+</div>
+</details>
+</section>
+
+<!-- ──────── AI/ML ──────── -->
+<section id="ml" class="section">
+<h2>AI/ML Features Guide</h2>
+<p>The platform includes 5 machine learning models that work together via cross-model intelligence.</p>
+
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>Model</th><th>Algorithm</th><th>Inputs</th><th>Outputs</th><th>Used In</th></tr></thead>
+<tbody>
+<tr><td><strong>Demand Forecasting</strong></td><td>GradientBoostingRegressor + STL Decomposition</td><td>Disaster type, severity, population, day, risk score, supply disruption</td><td>Daily demand per category with confidence intervals</td><td>Forecasting view</td></tr>
+<tr><td><strong>Risk Prediction</strong></td><td>RandomForestClassifier</td><td>Seismic, hydrological, climate, conflict indicators</td><td>Composite risk score, trend direction (increasing/stable/decreasing)</td><td>Risk Dashboard, Prepositioning, Forecasting</td></tr>
+<tr><td><strong>Disruption Prediction</strong></td><td>IsolationForest + GradientBoostingClassifier</td><td>Lead time, quality rating, capacity utilization, defect rate, price volatility</td><td>Risk level per supplier (critical/high/medium/low)</td><td>Suppliers, Prepositioning, Forecasting</td></tr>
+<tr><td><strong>Anomaly Detection</strong></td><td>IsolationForest + EWMA</td><td>Stock levels, shipment delays, consumption patterns</td><td>Anomalies with severity and diagnosis</td><td>Anomalies API</td></tr>
+<tr><td><strong>Stochastic Prepositioning</strong></td><td>Monte Carlo Simulation (200 scenarios)</td><td>Warehouse locations, risk zones, transport efficiency</td><td>Ranked recommendations with CVaR risk metrics</td><td>Prepositioning view</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Cross-Model Intelligence Flow</h3>
+<div class="workflow-path" style="flex-wrap:wrap">
+  <span class="workflow-node">Risk Model</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Forecasting</span>
+</div>
+<div class="workflow-path" style="flex-wrap:wrap;margin-top:6px">
+  <span class="workflow-node">Disruption Model</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Forecasting</span>
+</div>
+<div class="workflow-path" style="flex-wrap:wrap;margin-top:6px">
+  <span class="workflow-node">Disruption Model</span><span class="workflow-arrow">&#8594;</span>
+  <span class="workflow-node">Prepositioning</span>
+</div>
+<p style="font-size:14px;color:var(--text2);margin-top:8px">Risk scores inflate demand forecasts when risk is elevated. Supplier disruption rates increase prepositioning stock targets and widen forecast uncertainty bands.</p>
+</section>
+
+<!-- ──────── GLOSSARY ──────── -->
+<section id="glossary" class="section">
+<h2>Glossary</h2>
+
+<p class="glossary-term">3W (Who-What-Where)</p>
+<p class="glossary-def">A coordination framework tracking which organizations (Who) are conducting which activities (What) in which locations (Where). Prevents duplication and identifies gaps.</p>
+
+<p class="glossary-term">CAP (Common Alerting Protocol)</p>
+<p class="glossary-def">An XML standard for exchanging emergency alerts across different warning systems.</p>
+
+<p class="glossary-term">CRDT (Conflict-free Replicated Data Type)</p>
+<p class="glossary-def">A data structure that allows distributed systems to merge concurrent edits without conflicts. Used in DLSCM's offline sync engine.</p>
+
+<p class="glossary-term">CVaR (Conditional Value at Risk)</p>
+<p class="glossary-def">A risk measure indicating the expected outcome in the worst X% of scenarios. The platform uses CVaR 5% for prepositioning analysis.</p>
+
+<p class="glossary-term">EDXL-DE (Emergency Data Exchange Language &mdash; Distribution Element)</p>
+<p class="glossary-def">A standard XML envelope for routing emergency messages between organizations.</p>
+
+<p class="glossary-term">EWMA (Exponentially Weighted Moving Average)</p>
+<p class="glossary-def">A time-series smoothing technique that gives more weight to recent observations. Used for detecting consumption drift.</p>
+
+<p class="glossary-term">FEFO (First Expiry, First Out)</p>
+<p class="glossary-def">Inventory rotation principle ensuring items closest to expiry are used first.</p>
+
+<p class="glossary-term">GDACS (Global Disaster Alerting Coordination System)</p>
+<p class="glossary-def">A UN framework providing real-time disaster alerts and impact estimations.</p>
+
+<p class="glossary-term">HLC (Hybrid Logical Clock)</p>
+<p class="glossary-def">A clock algorithm combining physical timestamps with logical counters to provide globally unique, causally ordered timestamps.</p>
+
+<p class="glossary-term">Isolation Forest</p>
+<p class="glossary-def">An unsupervised ML algorithm for anomaly detection that isolates outliers by randomly partitioning data.</p>
+
+<p class="glossary-term">JWT (JSON Web Token)</p>
+<p class="glossary-def">A compact, URL-safe token format used for authentication. Contains encoded user identity and expiration.</p>
+
+<p class="glossary-term">LWW (Last-Writer-Wins)</p>
+<p class="glossary-def">A conflict resolution strategy where the most recent write (by timestamp) takes precedence.</p>
+
+<p class="glossary-term">NFI (Non-Food Items)</p>
+<p class="glossary-def">Household and personal items distributed in emergencies: blankets, cooking sets, jerry cans, sleeping mats.</p>
+
+<p class="glossary-term">OSRM (Open Source Routing Machine)</p>
+<p class="glossary-def">An open-source routing engine for computing shortest paths on road networks.</p>
+
+<p class="glossary-term">Sitrep (Situation Report)</p>
+<p class="glossary-def">A periodic report summarizing the current state of an emergency, including needs, response activities, and gaps.</p>
+
+<p class="glossary-term">SKU (Stock Keeping Unit)</p>
+<p class="glossary-def">A unique identifier assigned to each distinct item in the supply catalog for tracking and ordering.</p>
+
+<p class="glossary-term">Sphere Standards</p>
+<p class="glossary-def">The humanitarian charter and minimum standards in disaster response, covering water, food, shelter, and health.</p>
+
+<p class="glossary-term">STL Decomposition</p>
+<p class="glossary-def">Seasonal and Trend decomposition using Loess. Separates a time series into trend, seasonal, and residual components.</p>
+
+<p class="glossary-term">VRP (Vehicle Routing Problem)</p>
+<p class="glossary-def">An optimization problem to determine the most efficient routes for a fleet of vehicles to serve a set of locations.</p>
+
+<p class="glossary-term">WASH (Water, Sanitation, and Hygiene)</p>
+<p class="glossary-def">A sector in humanitarian response covering safe water supply, sanitation facilities, and hygiene promotion.</p>
+</section>
+
+<!-- ──────── FAQ ──────── -->
+<section id="faq" class="section">
+<h2>FAQ</h2>
+
+<details class="module">
+<summary>How do I change my password?</summary>
+<div class="module-body"><p>Click your name in the top bar and use the change-password option. You need your current password and a new password.</p></div>
+</details>
+
+<details class="module">
+<summary>What happens if I lose connectivity while creating a request?</summary>
+<div class="module-body"><p>The request is saved locally in your browser (IndexedDB). When connectivity returns, it syncs automatically. The orange offline chip in the top bar shows pending items.</p></div>
+</details>
+
+<details class="module">
+<summary>How accurate is the demand forecasting?</summary>
+<div class="module-body"><p>The model uses GradientBoosting trained on scenario data calibrated to real humanitarian consumption rates (Sphere Standards). It includes 95% confidence intervals. Use these intervals for planning buffers. The model improves as more response data accumulates.</p></div>
+</details>
+
+<details class="module">
+<summary>Can I export reports?</summary>
+<div class="module-body"><p>Generated donor reports display in the browser. You can use your browser's print function (Ctrl+P / Cmd+P) to save as PDF.</p></div>
+</details>
+
+<details class="module">
+<summary>How does the platform handle data from multiple organizations?</summary>
+<div class="module-body"><p>Each user belongs to one organization. Data visibility is managed at the warehouse/stock level. The Cross-Org Visibility module lets authorized users see federated stock across all participating organizations (opt-in basis).</p></div>
+</details>
+
+<details class="module">
+<summary>What languages are supported?</summary>
+<div class="module-body"><p>The platform supports all 6 UN official languages: English, Arabic, French, Spanish, Chinese, and Russian. Arabic uses right-to-left layout. Change your language in Settings.</p></div>
+</details>
+
+<details class="module">
+<summary>Is my data backed up?</summary>
+<div class="module-body"><p>The platform uses SQLite with file-based storage. For production deployments, database backups should be configured by your system administrator. The audit trail provides a complete record of all changes.</p></div>
+</details>
+
+<details class="module">
+<summary>How do I report a bug or request a feature?</summary>
+<div class="module-body"><p>Contact your organization's system administrator or file an issue through the project's issue tracker.</p></div>
+</details>
+</section>
+
+</main>
+</div>
+
+<script>
+// Sidebar active link tracking
+const sections = document.querySelectorAll('.section');
+const navLinks = document.querySelectorAll('.nav-link');
+
+function setActiveLink() {
+  let current = '';
+  sections.forEach(s => {
+    if (s.getBoundingClientRect().top < 120) current = s.id;
+  });
+  navLinks.forEach(l => {
+    l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+  });
+}
+window.addEventListener('scroll', setActiveLink, {passive: true});
+setActiveLink();
+
+// Close mobile sidebar on nav
+navLinks.forEach(l => l.addEventListener('click', () => {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.querySelector('.overlay').classList.remove('open');
+}));
+
+// Search
+function filterSections(query) {
+  const q = query.toLowerCase().trim();
+  sections.forEach(s => {
+    if (!q) {
+      s.style.display = '';
+      return;
+    }
+    const text = s.textContent.toLowerCase();
+    s.style.display = text.includes(q) ? '' : 'none';
+  });
+  // Also filter nav links
+  navLinks.forEach(l => {
+    const href = l.getAttribute('href');
+    const section = document.querySelector(href);
+    if (!q || !section) {
+      l.style.display = '';
+      return;
+    }
+    l.style.display = section.style.display === 'none' ? 'none' : '';
+  });
+}
+</script>
+</body>
+</html>
